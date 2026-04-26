@@ -13,29 +13,43 @@ function App() {
   const { theme, toggleTheme } = useThemeMode()
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
-      <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-80 bg-[radial-gradient(circle_at_50%_0%,color-mix(in_oklch,var(--primary)_16%,transparent),transparent_62%)]" />
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/80 backdrop-blur-2xl">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2.5 text-sm font-semibold tracking-tight">
-            <span className="flex size-8 items-center justify-center rounded-xl border border-border bg-card text-primary shadow-sm">
-              <ArrowDownToLine className="size-4" aria-hidden="true" />
+    <div className="min-h-svh bg-background text-foreground transition-colors duration-300">
+      {/* Apple-style hero gradient */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[70vh]"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_-10%,color-mix(in_oklch,var(--primary)_14%,transparent)_0%,transparent_100%)] dark:bg-[radial-gradient(ellipse_70%_60%_at_50%_-10%,color-mix(in_oklch,var(--primary)_9%,transparent)_0%,transparent_100%)]" />
+      </div>
+
+      {/* macOS-style header */}
+      <header className="sticky top-0 z-20 border-b border-border/50 bg-background/75 backdrop-blur-xl supports-backdrop-filter:bg-background/65">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-10">
+          <Link
+            to="/"
+            className="group flex items-center gap-2.5 text-sm font-semibold tracking-tight transition hover:opacity-80"
+          >
+            <span className="flex size-8 items-center justify-center rounded-xl border border-border/80 bg-card shadow-apple-sm text-foreground transition group-hover:shadow-apple-md">
+              <ArrowDownToLine className="size-4.5" aria-hidden="true" />
             </span>
-            Downloader
+            <span className="hidden sm:inline">Downloader</span>
           </Link>
+
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="icon"
             aria-label={theme === 'dark' ? '切换到亮色模式' : '切换到暗黑模式'}
             title={theme === 'dark' ? '切换到亮色模式' : '切换到暗黑模式'}
             onClick={toggleTheme}
+            className="rounded-full text-muted-foreground hover:text-foreground"
           >
-            {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            {theme === 'dark' ? <Sun className="size-4.5" /> : <Moon className="size-4.5" />}
           </Button>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+
+      <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-12 lg:px-10 lg:py-16">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/apps/:id" element={<AppDetailPage />} />

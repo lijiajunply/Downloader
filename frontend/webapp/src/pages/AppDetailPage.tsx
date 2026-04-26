@@ -107,51 +107,53 @@ function AppDetail({ app }: { app: AppDetailDto }) {
   const channels = useMemo(() => getUniqueChannels(app.releases), [app.releases])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 sm:space-y-12">
+      {/* Back link */}
       <Link
         to="/"
-        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground/70 transition hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         返回首页
       </Link>
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="rounded-lg border border-border bg-card/80 p-6 shadow-sm sm:p-8 lg:p-10">
-          <div className="flex flex-wrap items-center gap-3">
-            <StatusBadge active={app.isActive} />
-            <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-              {releaseCount} 个发行版
-            </span>
-          </div>
-          <div className="mt-6 space-y-4">
-            <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
-              {app.name}
-            </h1>
-            <p className="max-w-3xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
-              {app.description || '这个应用暂未填写描述。'}
-            </p>
-          </div>
+      {/* macOS-style app info panel */}
+      <section className="-mt-2 rounded-2xl border border-border/60 bg-card/70 p-7 shadow-apple-sm sm:p-9 lg:p-11">
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusBadge active={app.isActive} />
+          <span className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground">
+            {releaseCount} 个发行版
+          </span>
         </div>
-
-        <aside className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-          <MetricCard icon={<Layers3 className="size-4" />} label="发行版" value={releaseCount} />
-          <MetricCard icon={<Package className="size-4" />} label="软件实体" value={softCount} />
-          <MetricCard icon={<ShieldCheck className="size-4" />} label="渠道" value={channels.length} />
-        </aside>
+        <div className="mt-6 space-y-4 max-w-3xl">
+          <h1 className="text-balance text-[2rem] font-bold leading-[1.1] tracking-tight sm:text-4xl lg:text-5xl">
+            {app.name}
+          </h1>
+          <p className="text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
+            {app.description || '这个应用暂未填写描述。'}
+          </p>
+        </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)]">
+      {/* Metric cards - macOS Settings style */}
+      <aside className="grid gap-3 sm:grid-cols-3">
+        <MetricCard icon={<Layers3 className="size-4" />} label="发行版" value={releaseCount} />
+        <MetricCard icon={<Package className="size-4" />} label="软件实体" value={softCount} />
+        <MetricCard icon={<ShieldCheck className="size-4" />} label="渠道" value={channels.length} />
+      </aside>
+
+      {/* Releases + Protocols */}
+      <div className="grid gap-8 xl:grid-cols-[1.4fr_0.6fr] xl:gap-10">
         <ReleaseSection releases={app.releases} />
         <ProtocolSection protocols={app.protocols} />
-      </section>
+      </div>
     </div>
   )
 }
 
 function ReleaseSection({ releases }: { releases: ReleaseDto[] }) {
   return (
-    <section className="space-y-4" aria-label="发行版">
+    <section className="space-y-5" aria-label="发行版">
       <SectionHeader
         icon={<RefreshCw className="size-4" />}
         title="发行版"
@@ -164,9 +166,10 @@ function ReleaseSection({ releases }: { releases: ReleaseDto[] }) {
           {releases.map((release) => (
             <article
               key={release.id}
-              className="rounded-lg border border-border bg-card/80 p-5 shadow-sm sm:p-6"
+              className="rounded-2xl border border-border/60 bg-card/70 p-6 shadow-apple-sm transition-all duration-200 hover:shadow-apple-md sm:p-7"
             >
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              {/* Release header */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 space-y-2">
                   <h3 className="text-xl font-semibold tracking-tight">{release.name}</h3>
                   <p className="text-sm leading-6 text-muted-foreground">
@@ -174,18 +177,24 @@ function ReleaseSection({ releases }: { releases: ReleaseDto[] }) {
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2 text-xs font-medium">
-                  <span className="rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
+                  <span className="rounded-full bg-secondary/70 px-3 py-1 text-secondary-foreground shadow-apple-sm">
                     {release.releaseId}
                   </span>
-                  <span className="rounded-full border border-border px-3 py-1 text-muted-foreground">
+                  <span className="rounded-full border border-border/60 px-3 py-1 text-muted-foreground">
                     {formatDate(release.releaseDate)}
                   </span>
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-3 lg:grid-cols-2">
+              {/* Release body - softs grid */}
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {release.softs.length === 0 ? (
-                  <SoftEmptyState title="暂无软件实体" description="这个发行版还没有可下载的软件实体。" />
+                  <div className="sm:col-span-2">
+                    <SoftEmptyState
+                      title="暂无软件实体"
+                      description="这个发行版还没有可下载的软件实体。"
+                    />
+                  </div>
                 ) : (
                   release.softs.map((soft) => <SoftCard key={soft.id} soft={soft} />)
                 )}
@@ -200,11 +209,11 @@ function ReleaseSection({ releases }: { releases: ReleaseDto[] }) {
 
 function SoftCard({ soft }: { soft: SoftDto }) {
   return (
-    <div className="rounded-lg border border-border/80 bg-background/70 p-4">
+    <div className="rounded-xl border border-border/50 bg-background/60 p-5 shadow-apple-sm transition-all duration-200 hover:border-border/80 hover:shadow-apple-md">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-2">
           <h4 className="line-clamp-2 font-semibold tracking-tight">{soft.name}</h4>
-          <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">
+          <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
             {soft.description || '这个软件实体暂未填写描述。'}
           </p>
         </div>
@@ -216,7 +225,7 @@ function SoftCard({ soft }: { soft: SoftDto }) {
         href={soft.softUrl}
         target="_blank"
         rel="noreferrer"
-        className="mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition hover:border-primary/40 hover:text-primary"
+        className="mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border border-border/60 bg-card/80 px-3.5 py-2 text-sm font-medium text-foreground shadow-apple-sm transition-all duration-200 hover:border-primary/30 hover:text-primary hover:shadow-apple-md"
       >
         <ArrowDownToLine className="size-4 shrink-0" aria-hidden="true" />
         <span className="truncate">下载软件</span>
@@ -227,7 +236,7 @@ function SoftCard({ soft }: { soft: SoftDto }) {
 
 function ProtocolSection({ protocols }: { protocols: ProtocolDto[] }) {
   return (
-    <section className="space-y-4" aria-label="用户协议">
+    <section className="space-y-5" aria-label="用户协议">
       <SectionHeader
         icon={<FileText className="size-4" />}
         title="用户协议"
@@ -240,19 +249,19 @@ function ProtocolSection({ protocols }: { protocols: ProtocolDto[] }) {
           {protocols.map((protocol) => (
             <details
               key={protocol.id}
-              className="group rounded-lg border border-border bg-card/80 p-5 shadow-sm"
+              className="group rounded-2xl border border-border/60 bg-card/70 p-5 shadow-apple-sm transition-all duration-200 open:shadow-apple-md sm:p-6"
             >
               <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
-                <span className="min-w-0 space-y-2">
+                <div className="min-w-0 space-y-1.5">
                   <span className="block font-semibold tracking-tight">{protocol.name}</span>
                   <span className="line-clamp-2 block text-sm leading-6 text-muted-foreground">
                     {protocol.description || '这个协议暂未填写描述。'}
                   </span>
-                </span>
-                <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition group-open:rotate-90" />
+                </div>
+                <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-90" />
               </summary>
-              <div className="mt-4 max-h-96 overflow-auto rounded-lg bg-secondary/60 p-4 text-sm leading-7 text-secondary-foreground/90">
-                <p className="whitespace-pre-wrap break-words">{protocol.context || '暂无协议正文。'}</p>
+              <div className="mt-5 max-h-96 overflow-auto rounded-xl bg-secondary/50 p-5 text-sm leading-7 text-secondary-foreground/90">
+                <p className="whitespace-pre-wrap wrap-break-word">{protocol.context || '暂无协议正文。'}</p>
               </div>
             </details>
           ))}
@@ -262,39 +271,34 @@ function ProtocolSection({ protocols }: { protocols: ProtocolDto[] }) {
   )
 }
 
-function MetricCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode
-  label: string
-  value: number
-}) {
+function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-border bg-card/80 p-5 shadow-sm">
+    <div className="rounded-2xl border border-border/60 bg-card/70 p-6 shadow-apple-sm transition-all duration-200 hover:shadow-apple-md">
       <div className="flex items-center justify-between gap-4">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
-        <span className="flex size-8 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {label}
+        </span>
+        <span className="flex size-8 items-center justify-center rounded-xl bg-secondary text-secondary-foreground shadow-apple-sm">
           {icon}
         </span>
       </div>
-      <p className="mt-4 text-3xl font-semibold tracking-tight">{value}</p>
+      <p className="mt-4 text-3xl font-bold tracking-tight">{value}</p>
     </div>
   )
 }
 
 function DetailSkeleton() {
   return (
-    <div className="space-y-8">
-      <div className="h-5 w-24 animate-pulse rounded bg-muted" />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="h-72 animate-pulse rounded-lg border border-border bg-card" />
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-          <div className="h-28 animate-pulse rounded-lg border border-border bg-card" />
-          <div className="h-28 animate-pulse rounded-lg border border-border bg-card" />
-          <div className="h-28 animate-pulse rounded-lg border border-border bg-card" />
-        </div>
+    <div className="space-y-10 sm:space-y-12">
+      <div className="h-4 w-24 animate-pulse rounded-lg bg-muted" />
+      <div className="h-52 animate-pulse rounded-2xl border border-border/60 bg-card/60 shadow-apple-sm" />
+      <div className="grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }, (_, i) => (
+          <div
+            key={i}
+            className="h-28 animate-pulse rounded-2xl border border-border/60 bg-card/60 shadow-apple-sm"
+          />
+        ))}
       </div>
     </div>
   )
