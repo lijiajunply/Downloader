@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { Box, ChevronRight, CircleAlert, Package, Sparkles } from 'lucide-react'
+import { Box, ChevronRight, CircleAlert, Package, ArrowRight } from 'lucide-react'
 import { getApps } from '@/services'
 import type { AppDto } from '@/types'
 import { type LoadState, StatePanel, StatusBadge } from './pageComponents'
 import { getErrorMessage } from './pageUtils'
+import { Button } from '@/components/ui/button'
 
 export function HomePage() {
   const [state, setState] = useState<LoadState<AppDto[]>>({ status: 'loading' })
@@ -33,58 +34,56 @@ export function HomePage() {
   }, [])
 
   return (
-    <div className="space-y-12 sm:space-y-16">
-      {/* Apple-style hero */}
-      <section className="grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
-        <div className="max-w-2xl space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 px-3.5 py-1 text-xs font-medium text-muted-foreground shadow-apple-sm backdrop-blur-sm">
-            <Sparkles className="size-3.5 text-primary" aria-hidden="true" />
-            应用分发中心
-          </div>
-          <div className="space-y-4">
-            <h1 className="text-balance text-[2.25rem] font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              当前可用的应用
-            </h1>
-            <p className="max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-              浏览已接入 Downloader 的应用，查看最新发行版、软件包渠道和用户协议。
-            </p>
-          </div>
-        </div>
-
-        {/* macOS-style stats card */}
-        <div className="rounded-2xl border border-border/60 bg-card/70 p-6 shadow-apple-sm backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">状态</p>
-              <p className="mt-1.5 text-2xl font-semibold tracking-tight">
-                {state.status === 'success' ? `${state.data.length} 个应用` : '加载中…'}
-              </p>
-            </div>
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-apple-sm">
-              <Package className="size-5" aria-hidden="true" />
-            </span>
+    <div className="space-y-24 sm:space-y-32">
+      {/* Hero Showcase Section */}
+      <section className="relative flex flex-col items-center text-center">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          <h1 className="max-w-4xl text-balance text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl lg:text-8xl">
+            更优雅地分发<br />
+            <span className="bg-linear-to-b from-foreground to-foreground/60 bg-clip-text text-transparent">您的所有应用</span>
+          </h1>
+          <p className="mx-auto mt-8 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl">
+            提供简约、高效的应用管理与分发平台。基于 Apple 设计哲学，为您的软件提供最完美的呈现方式。
+          </p>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <Button size="lg" className="h-12 rounded-full px-8 text-base font-medium shadow-apple-md">
+              开始探索
+              <ArrowRight className="ml-2 size-4" />
+            </Button>
+            <Button size="lg" variant="outline" className="h-12 rounded-full px-8 text-base font-medium bg-card/50 backdrop-blur-sm border-border/60">
+              了解更多
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* App list */}
-      <section aria-label="应用列表">
-        {state.status === 'loading' && <LoadingGrid />}
-        {state.status === 'empty' && (
-          <StatePanel
-            icon={<Box className="size-5" />}
-            title="暂无应用"
-            description="后端当前没有返回应用。创建应用后，它们会出现在这里。"
-          />
-        )}
-        {state.status === 'error' && (
-          <StatePanel
-            icon={<CircleAlert className="size-5" />}
-            title="应用加载失败"
-            description={state.message}
-          />
-        )}
-        {state.status === 'success' && <AppGrid apps={state.data} />}
+      {/* App List Section */}
+      <section id="apps" className="space-y-12 pb-24">
+        <div className="flex flex-col items-center text-center space-y-4">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">浏览应用库</h2>
+          <p className="max-w-2xl text-muted-foreground">
+            发现更多优质应用，查看版本更新日志与安装渠道。
+          </p>
+        </div>
+
+        <div>
+          {state.status === 'loading' && <LoadingGrid />}
+          {state.status === 'empty' && (
+            <StatePanel
+              icon={<Box className="size-5" />}
+              title="暂无应用"
+              description="后端当前没有返回应用。创建应用后，它们会出现在这里。"
+            />
+          )}
+          {state.status === 'error' && (
+            <StatePanel
+              icon={<CircleAlert className="size-5" />}
+              title="应用加载失败"
+              description={state.message}
+            />
+          )}
+          {state.status === 'success' && <AppGrid apps={state.data} />}
+        </div>
       </section>
     </div>
   )
@@ -92,34 +91,30 @@ export function HomePage() {
 
 function AppGrid({ apps }: { apps: AppDto[] }) {
   return (
-    <div className="grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {apps.map((app) => (
         <Link
           key={app.id}
           to={`/apps/${encodeURIComponent(app.id)}`}
-          className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card/70 p-6 shadow-apple-sm transition-all duration-300 hover:-translate-y-1 hover:border-border hover:shadow-apple-lg"
+          className="group relative flex flex-col overflow-hidden rounded-[2rem] border border-border/60 bg-card/70 p-8 shadow-apple-sm transition-all duration-500 hover:-translate-y-2 hover:border-primary/20 hover:shadow-apple-lg hover:bg-card"
         >
-          {/* Card top accent */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-transparent via-primary/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          />
-
-          <div className="flex items-start justify-between gap-4">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground shadow-apple-sm">
-              <Package className="size-5" aria-hidden="true" />
-            </span>
+          <div className="flex items-start justify-between">
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground shadow-apple-sm transition-transform duration-500 group-hover:scale-110">
+              <Package className="size-7" aria-hidden="true" />
+            </div>
             <StatusBadge active={app.isActive} />
           </div>
-          <div className="mt-5 space-y-2.5">
-            <h2 className="line-clamp-1 text-lg font-semibold tracking-tight">{app.name}</h2>
-            <p className="line-clamp-2 min-h-12 text-sm leading-6 text-muted-foreground">
-              {app.description || '这个应用暂未填写描述。'}
+          <div className="mt-8 flex-1 space-y-3">
+            <h3 className="text-2xl font-bold tracking-tight">{app.name}</h3>
+            <p className="line-clamp-3 text-base leading-relaxed text-muted-foreground">
+              {app.description || '探索这个应用的无限可能。'}
             </p>
           </div>
-          <div className="mt-6 flex items-center justify-between border-t border-border/40 pt-4 text-sm font-medium">
-            <span className="text-muted-foreground">查看详情</span>
-            <ChevronRight className="size-4 text-foreground/30 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-primary" />
+          <div className="mt-10 flex items-center justify-between border-t border-border/40 pt-6">
+            <span className="text-sm font-semibold tracking-wide text-primary">立即获取</span>
+            <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+              <ChevronRight className="size-4" />
+            </div>
           </div>
         </Link>
       ))}
@@ -129,23 +124,23 @@ function AppGrid({ apps }: { apps: AppDto[] }) {
 
 function LoadingGrid() {
   return (
-    <div className="grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 6 }, (_, index) => (
         <div
           key={index}
-          className="rounded-2xl border border-border/60 bg-card/60 p-6 shadow-apple-sm"
+          className="rounded-[2rem] border border-border/60 bg-card/60 p-8 shadow-apple-sm"
         >
           <div className="flex items-center justify-between">
-            <div className="size-11 animate-pulse rounded-xl bg-muted" />
-            <div className="h-6 w-18 animate-pulse rounded-full bg-muted" />
+            <div className="size-14 animate-pulse rounded-2xl bg-muted" />
+            <div className="h-7 w-20 animate-pulse rounded-full bg-muted" />
           </div>
-          <div className="mt-6 h-5 w-2/3 animate-pulse rounded bg-muted" />
-          <div className="mt-4 space-y-2">
-            <div className="h-3.5 animate-pulse rounded bg-muted" />
-            <div className="h-3.5 w-5/6 animate-pulse rounded bg-muted" />
+          <div className="mt-10 h-8 w-2/3 animate-pulse rounded-lg bg-muted" />
+          <div className="mt-4 space-y-3">
+            <div className="h-4 animate-pulse rounded-md bg-muted" />
+            <div className="h-4 w-5/6 animate-pulse rounded-md bg-muted" />
           </div>
-          <div className="mt-6 h-px bg-border/40" />
-          <div className="mt-4 h-4 w-24 animate-pulse rounded bg-muted" />
+          <div className="mt-10 h-px bg-border/40" />
+          <div className="mt-6 h-5 w-24 animate-pulse rounded-md bg-muted" />
         </div>
       ))}
     </div>

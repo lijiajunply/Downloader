@@ -23,6 +23,8 @@ import {
   StatusBadge,
 } from './pageComponents'
 import { getErrorMessage } from './pageUtils'
+import { CourseAppShowcase } from './showcase/CourseAppShowcase'
+import { CampusMarketShowcase } from './showcase/CampusMarketShowcase'
 
 export function AppDetailPage() {
   const { id } = useParams()
@@ -95,6 +97,15 @@ export function AppDetailPage() {
     return null
   }
 
+  // Handle specialized showcase pages
+  if (state.data.name === '课刻') {
+    return <CourseAppShowcase app={state.data} />
+  }
+
+  if (state.data.name === ' MarketOurs') {
+    return <CampusMarketShowcase app={state.data} />
+  }
+
   return <AppDetail app={state.data} />
 }
 
@@ -107,7 +118,7 @@ function AppDetail({ app }: { app: AppDetailDto }) {
   const channels = useMemo(() => getUniqueChannels(app.releases), [app.releases])
 
   return (
-    <div className="space-y-10 sm:space-y-12">
+    <div className="space-y-12 sm:space-y-16">
       {/* Back link */}
       <Link
         to="/"
@@ -117,33 +128,39 @@ function AppDetail({ app }: { app: AppDetailDto }) {
         返回首页
       </Link>
 
-      {/* macOS-style app info panel */}
-      <section className="-mt-2 rounded-2xl border border-border/60 bg-card/70 p-7 shadow-apple-sm sm:p-9 lg:p-11">
-        <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge active={app.isActive} />
-          <span className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-muted-foreground">
-            {releaseCount} 个发行版
-          </span>
-        </div>
-        <div className="mt-6 space-y-4 max-w-3xl">
-          <h1 className="text-balance text-[2rem] font-bold leading-[1.1] tracking-tight sm:text-4xl lg:text-5xl">
+      {/* Hero Header */}
+      <section className="relative -mt-6 flex flex-col items-start gap-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-6 max-w-3xl">
+          <div className="flex flex-wrap items-center gap-3">
+             <StatusBadge active={app.isActive} />
+             <span className="rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
+               {releaseCount} 个发行版
+             </span>
+          </div>
+          <h1 className="text-balance text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
             {app.name}
           </h1>
-          <p className="text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-            {app.description || '这个应用暂未填写描述。'}
+          <p className="text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl">
+            {app.description || '探索这个应用的无限可能。'}
           </p>
+        </div>
+
+        <div className="flex shrink-0 gap-3">
+           <Button size="lg" className="rounded-full h-12 px-6 shadow-apple-md">
+             立即获取
+           </Button>
         </div>
       </section>
 
       {/* Metric cards - macOS Settings style */}
-      <aside className="grid gap-3 sm:grid-cols-3">
-        <MetricCard icon={<Layers3 className="size-4" />} label="发行版" value={releaseCount} />
-        <MetricCard icon={<Package className="size-4" />} label="软件实体" value={softCount} />
-        <MetricCard icon={<ShieldCheck className="size-4" />} label="渠道" value={channels.length} />
+      <aside className="grid gap-4 sm:grid-cols-3">
+        <MetricCard icon={<Layers3 className="size-5" />} label="发行版" value={releaseCount} />
+        <MetricCard icon={<Package className="size-5" />} label="软件实体" value={softCount} />
+        <MetricCard icon={<ShieldCheck className="size-5" />} label="渠道" value={channels.length} />
       </aside>
 
       {/* Releases + Protocols */}
-      <div className="grid gap-8 xl:grid-cols-[1.4fr_0.6fr] xl:gap-10">
+      <div className="grid gap-12 xl:grid-cols-[1.4fr_0.6fr] xl:gap-16">
         <ReleaseSection releases={app.releases} />
         <ProtocolSection protocols={app.protocols} />
       </div>
