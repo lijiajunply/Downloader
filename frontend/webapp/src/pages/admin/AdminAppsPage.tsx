@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Boxes, ChevronRight, LoaderCircle, Plus, RotateCcw, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Boxes, LoaderCircle, Plus, RotateCcw, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/button'
 import { createApp, getApps, getUserList, updateApp, deleteApp } from '@/services'
@@ -9,7 +9,6 @@ import type { LoadState } from '../pageComponents'
 import { StatusBadge } from '../pageComponents'
 import {
   AdminPageHeader,
-  AdminPanel,
   ResourceContent,
   TableShell,
 } from './AdminShared'
@@ -76,7 +75,7 @@ export function AdminAppsPage() {
   const handleAuthFailure = useAdminAuthFailure()
   const [appState, setAppState] = useState<LoadState<AppDto[]>>({ status: 'loading' })
   const [users, setUsers] = useState<UserDto[]>([])
-  
+
   // Create
   const [form, setForm] = useState<NewAppForm>(emptyForm)
   const [createOpen, setCreateOpen] = useState(false)
@@ -140,10 +139,10 @@ export function AdminAppsPage() {
 
     try {
       const createdApp = await createApp({
-          name: form.name.trim(),
-          description: form.description.trim(),
-          userId: form.userId,
-        },
+        name: form.name.trim(),
+        description: form.description.trim(),
+        userId: form.userId,
+      },
         token,
       )
       setForm((current) => ({ ...emptyForm, userId: current.userId }))
@@ -254,14 +253,12 @@ export function AdminAppsPage() {
         }
       />
 
-      <AdminPanel title="应用列表" description="点击“查看”进入详情页管理发行版和协议。" icon={<Boxes className="size-5" />}>
-        <ResourceContent state={appState} emptyTitle="暂无应用" emptyDescription="创建应用后，它会显示在这里。" errorTitle="应用加载失败">
-          {(apps) => <AppTable apps={apps} onEdit={openEdit} onDelete={setDeleteId} />}
-        </ResourceContent>
-      </AdminPanel>
+      <ResourceContent state={appState} emptyTitle="暂无应用" emptyDescription="创建应用后，它会显示在这里。" errorTitle="应用加载失败" >
+        {(apps) => <AppTable apps={apps} onEdit={openEdit} onDelete={setDeleteId} />}
+      </ResourceContent>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-106.25">
           <form onSubmit={handleUpdateApp}>
             <DialogHeader>
               <DialogTitle>编辑应用: {editingApp?.name}</DialogTitle>

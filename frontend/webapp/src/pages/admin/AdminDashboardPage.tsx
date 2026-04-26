@@ -131,12 +131,6 @@ export function AdminDashboardPage() {
           description="维护全局渠道字典。"
           to="/admin/channels"
         />
-        <EntryCard
-          icon={<BookText className="size-5" />}
-          title="协议"
-          description="查看全局协议索引。"
-          to="/admin/protocols"
-        />
       </section>
     </div>
   )

@@ -20,7 +20,6 @@ import {
   SectionHeader,
   SoftEmptyState,
   StatePanel,
-  StatusBadge,
 } from './pageComponents'
 import { getErrorMessage } from './pageUtils'
 import { CourseAppShowcase } from './showcase/CourseAppShowcase'
@@ -119,24 +118,9 @@ function AppDetail({ app }: { app: AppDetailDto }) {
 
   return (
     <div className="space-y-12 sm:space-y-16">
-      {/* Back link */}
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground/70 transition hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        返回首页
-      </Link>
-
       {/* Hero Header */}
       <section className="relative -mt-6 flex flex-col items-start gap-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-6 max-w-3xl">
-          <div className="flex flex-wrap items-center gap-3">
-             <StatusBadge active={app.isActive} />
-             <span className="rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-               {releaseCount} 个发行版
-             </span>
-          </div>
           <h1 className="text-balance text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
             {app.name}
           </h1>

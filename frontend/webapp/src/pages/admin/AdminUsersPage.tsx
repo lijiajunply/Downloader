@@ -7,7 +7,6 @@ import type { UserDto } from '@/types'
 import type { LoadState } from '../pageComponents'
 import {
   AdminPageHeader,
-  AdminPanel,
   ResourceContent,
   TableShell,
 } from './AdminShared'
@@ -69,7 +68,7 @@ export function AdminUsersPage() {
   const { token } = useAuth()
   const handleAuthFailure = useAdminAuthFailure()
   const [state, setState] = useState<LoadState<UserDto[]>>({ status: 'loading' })
-  
+
   // Create Form
   const [form, setForm] = useState<NewUserForm>(emptyForm)
   const [createOpen, setCreateOpen] = useState(false)
@@ -130,10 +129,10 @@ export function AdminUsersPage() {
 
     try {
       await createUser({
-          username: form.username.trim(),
-          email: form.email.trim(),
-          password: form.password,
-        },
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      },
         token,
       )
       setForm(emptyForm)
@@ -236,11 +235,9 @@ export function AdminUsersPage() {
         }
       />
 
-      <AdminPanel title="用户列表" description="所有注册用户的汇总列表。" icon={<UsersRound className="size-5" />}>
-        <ResourceContent state={state} emptyTitle="暂无用户" emptyDescription="添加第一个用户后，列表会显示在这里。" errorTitle="用户加载失败">
-          {(users) => <UserTable users={users} onEdit={openEdit} onDelete={setDeleteId} />}
-        </ResourceContent>
-      </AdminPanel>
+      <ResourceContent state={state} emptyTitle="暂无用户" emptyDescription="添加第一个用户后，列表会显示在这里。" errorTitle="用户加载失败">
+        {(users) => <UserTable users={users} onEdit={openEdit} onDelete={setDeleteId} />}
+      </ResourceContent>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-[425px]">

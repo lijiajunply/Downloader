@@ -7,7 +7,6 @@ import type { ChannelDto } from '@/types'
 import type { LoadState } from '../pageComponents'
 import {
   AdminPageHeader,
-  AdminPanel,
   ResourceContent,
   TableShell,
 } from './AdminShared'
@@ -45,7 +44,7 @@ export function AdminChannelsPage() {
   const { token } = useAuth()
   const handleAuthFailure = useAdminAuthFailure()
   const [state, setState] = useState<LoadState<ChannelDto[]>>({ status: 'loading' })
-  
+
   // Create
   const [name, setName] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
@@ -193,11 +192,9 @@ export function AdminChannelsPage() {
         }
       />
 
-      <AdminPanel title="渠道列表" description="所有可用的分发渠道字典。" icon={<RadioTower className="size-5" />}>
-        <ResourceContent state={state} emptyTitle="暂无渠道" emptyDescription="添加渠道后，列表会显示在这里。" errorTitle="渠道加载失败" loadingColumns={2}>
-          {(channels) => <ChannelTable channels={channels} onEdit={openEdit} onDelete={setDeleteId} />}
-        </ResourceContent>
-      </AdminPanel>
+      <ResourceContent state={state} emptyTitle="暂无渠道" emptyDescription="添加渠道后，列表会显示在这里。" errorTitle="渠道加载失败" loadingColumns={2}>
+        {(channels) => <ChannelTable channels={channels} onEdit={openEdit} onDelete={setDeleteId} />}
+      </ResourceContent>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-[425px]">

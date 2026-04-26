@@ -1,13 +1,10 @@
 import * as React from "react"
 import {
-  BookText,
   Boxes,
   ChevronRight,
-  GitBranch,
   LayoutDashboard,
   LogOut,
   RadioTower,
-  UsersRound,
   ArrowLeft,
   ChevronsUpDown,
   User,
@@ -82,10 +79,6 @@ const data = {
         {
           title: "渠道管理",
           url: "/admin/channels",
-        },
-        {
-          title: "协议管理",
-          url: "/admin/protocols",
         },
       ],
     },
