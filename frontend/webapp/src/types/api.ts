@@ -89,14 +89,14 @@ export interface SoftDto {
   id: string
   name: string
   softUrl: string
-  description: string
+  description?: string
   channel: ChannelDto | null
 }
 
 export interface SoftCreateDto {
   name: string
   softUrl: string
-  description: string
+  description?: string
   releaseId: string
   channelId: string
 }
@@ -104,7 +104,7 @@ export interface SoftCreateDto {
 export interface SoftUpdateDto {
   name: string
   softUrl: string
-  description: string
+  description?: string
 }
 
 export interface UserDto {

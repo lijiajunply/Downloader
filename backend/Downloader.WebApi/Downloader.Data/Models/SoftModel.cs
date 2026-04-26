@@ -18,7 +18,7 @@ public class SoftModel
     [MaxLength(512)]
     public string SoftUrl { get; set; } = "";
 
-    [MaxLength(64)] public string Description { get; set; } = "";
+    [MaxLength(64)] public string? Description { get; set; }
 
     [MaxLength(64)] public string ReleaseId { get; set; } = "";
 

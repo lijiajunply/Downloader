@@ -127,7 +127,7 @@ public class SoftController(ISoftService softService, IWebHostEnvironment enviro
 public class SoftUploadRequest
 {
     public string Name { get; set; } = "";
-    public string Description { get; set; } = "";
+    public string? Description { get; set; }
     public string ReleaseId { get; set; } = "";
     public string ChannelId { get; set; } = "";
     public IFormFile? File { get; set; }

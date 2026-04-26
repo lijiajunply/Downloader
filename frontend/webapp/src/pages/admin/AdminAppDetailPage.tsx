@@ -11,34 +11,72 @@ import {
   Plus,
   SearchX,
   Upload,
+  RotateCcw,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/button'
-import { createProtocol, createRelease, getApp, getChannelList, resolveApiUrl, uploadSoftPackage } from '@/services'
+import { 
+  createRelease, 
+  getApp, 
+  getChannelList, 
+  resolveApiUrl, 
+  uploadSoftPackage,
+  updateRelease,
+  deleteRelease,
+  deleteProtocol
+} from '@/services'
 import type { AppDetailDto, ChannelDto, ProtocolDto, ReleaseDto, SoftDto } from '@/types'
 import { StatePanel, StatusBadge, type LoadState } from '../pageComponents'
 import {
   AdminPageHeader,
   AdminPanel,
-  InlineMessage,
-  SelectField,
   TableShell,
-  TextAreaField,
-  TextField,
 } from './AdminShared'
 import { formatDate, getAdminErrorMessage, truncateText } from './adminUtils'
 import { useAdminAuthFailure } from './useAdminAuthFailure'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface NewReleaseForm {
   name: string
   description: string
   releaseId: string
-}
-
-interface NewProtocolForm {
-  name: string
-  description: string
-  context: string
 }
 
 interface NewSoftForm {
@@ -55,12 +93,6 @@ const emptyReleaseForm: NewReleaseForm = {
   releaseId: '',
 }
 
-const emptyProtocolForm: NewProtocolForm = {
-  name: '',
-  description: '',
-  context: '',
-}
-
 const emptySoftForm: NewSoftForm = {
   name: '',
   description: '',
@@ -75,18 +107,22 @@ export function AdminAppDetailPage() {
   const handleAuthFailure = useAdminAuthFailure()
   const [state, setState] = useState<LoadState<AppDetailDto>>({ status: 'loading' })
   const [channels, setChannels] = useState<ChannelDto[]>([])
+  
   const [releaseForm, setReleaseForm] = useState<NewReleaseForm>(emptyReleaseForm)
-  const [protocolForm, setProtocolForm] = useState<NewProtocolForm>(emptyProtocolForm)
   const [softForm, setSoftForm] = useState<NewSoftForm>(emptySoftForm)
+  
   const [releaseError, setReleaseError] = useState('')
-  const [protocolError, setProtocolError] = useState('')
   const [softError, setSoftError] = useState('')
-  const [releaseSuccess, setReleaseSuccess] = useState('')
-  const [protocolSuccess, setProtocolSuccess] = useState('')
-  const [softSuccess, setSoftSuccess] = useState('')
+  
   const [releaseSubmitting, setReleaseSubmitting] = useState(false)
-  const [protocolSubmitting, setProtocolSubmitting] = useState(false)
   const [softSubmitting, setSoftSubmitting] = useState(false)
+  
+  const [releaseDialogOpen, setReleaseDialogOpen] = useState(false)
+  const [softDialogOpen, setSoftDialogOpen] = useState(false)
+  
+  // For Editing/Deleting
+  const [editingRelease, setEditingRelease] = useState<ReleaseDto | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'release' | 'protocol', id: string } | null>(null)
 
   const loadAppDetail = useCallback(async () => {
     if (!id) return
@@ -132,33 +168,35 @@ export function AdminAppDetailPage() {
 
   async function handleCreateRelease(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
     if (!token || !id) return
 
     const validationMessage = validateReleaseForm(releaseForm)
     if (validationMessage) {
       setReleaseError(validationMessage)
-      setReleaseSuccess('')
       return
     }
 
     setReleaseSubmitting(true)
     setReleaseError('')
-    setReleaseSuccess('')
 
     try {
-      const createdRelease = await createRelease(
-        {
+      if (editingRelease) {
+        await updateRelease(editingRelease.id, {
+          name: releaseForm.name.trim(),
+          description: releaseForm.description.trim(),
+          releaseId: releaseForm.releaseId.trim(),
+        }, token)
+      } else {
+        await createRelease({
           name: releaseForm.name.trim(),
           description: releaseForm.description.trim(),
           releaseId: releaseForm.releaseId.trim(),
           appId: id,
-        },
-        token,
-      )
+        }, token)
+      }
       setReleaseForm(emptyReleaseForm)
-      setSoftForm((current) => ({ ...current, releaseId: current.releaseId || createdRelease.id }))
-      setReleaseSuccess(`已添加发行版 ${createdRelease.name}。`)
+      setEditingRelease(null)
+      setReleaseDialogOpen(false)
       await refreshCurrentApp(id)
     } catch (error) {
       if (handleAuthFailure(error)) return
@@ -168,62 +206,21 @@ export function AdminAppDetailPage() {
     }
   }
 
-  async function handleCreateProtocol(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    if (!token || !id) return
-
-    const validationMessage = validateProtocolForm(protocolForm)
-    if (validationMessage) {
-      setProtocolError(validationMessage)
-      setProtocolSuccess('')
-      return
-    }
-
-    setProtocolSubmitting(true)
-    setProtocolError('')
-    setProtocolSuccess('')
-
-    try {
-      const createdProtocol = await createProtocol(
-        {
-          name: protocolForm.name.trim(),
-          description: protocolForm.description.trim(),
-          context: protocolForm.context.trim(),
-          appId: id,
-        },
-        token,
-      )
-      setProtocolForm(emptyProtocolForm)
-      setProtocolSuccess(`已添加协议 ${createdProtocol.name}。`)
-      await refreshCurrentApp(id)
-    } catch (error) {
-      if (handleAuthFailure(error)) return
-      setProtocolError(getAdminErrorMessage(error))
-    } finally {
-      setProtocolSubmitting(false)
-    }
-  }
-
   async function handleUploadSoft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-
     if (!token || !id) return
 
     const validationMessage = validateSoftForm(softForm)
     if (validationMessage) {
       setSoftError(validationMessage)
-      setSoftSuccess('')
       return
     }
 
     setSoftSubmitting(true)
     setSoftError('')
-    setSoftSuccess('')
 
     try {
-      const uploadedSoft = await uploadSoftPackage(
-        {
+      await uploadSoftPackage({
           name: softForm.name.trim(),
           description: softForm.description.trim(),
           releaseId: softForm.releaseId,
@@ -237,7 +234,7 @@ export function AdminAppDetailPage() {
         releaseId: current.releaseId,
         channelId: current.channelId,
       }))
-      setSoftSuccess(`已上传安装包 ${uploadedSoft.name}。`)
+      setSoftDialogOpen(false)
       await refreshCurrentApp(id)
     } catch (error) {
       if (handleAuthFailure(error)) return
@@ -247,77 +244,70 @@ export function AdminAppDetailPage() {
     }
   }
 
+  async function handleDeleteConfirm() {
+    if (!token || !deleteTarget || !id) return
+
+    try {
+      if (deleteTarget.type === 'release') {
+        await deleteRelease(deleteTarget.id, token)
+      } else {
+        await deleteProtocol(deleteTarget.id, token)
+      }
+      await refreshCurrentApp(id)
+    } catch (error) {
+      if (handleAuthFailure(error)) return
+      // We might want an error toast here
+    } finally {
+      setDeleteTarget(null)
+    }
+  }
+
   async function refreshCurrentApp(appId: string) {
     const app = await getApp(appId)
     setState({ status: 'success', data: app })
   }
 
-  if (!id) {
-    return (
+  const openEditRelease = (release: ReleaseDto) => {
+    setEditingRelease(release)
+    setReleaseForm({
+      name: release.name,
+      description: release.description,
+      releaseId: release.releaseId,
+    })
+    setReleaseDialogOpen(true)
+  }
+
+  if (state.status === 'loading') return <AppDetailSkeleton />
+  if (state.status === 'not-found' || !id) return (
       <StatePanel
         icon={<SearchX className="size-5" />}
         title="没有找到这个应用"
         description="请返回应用列表重新选择。"
         action={<BackToAppsButton />}
       />
-    )
-  }
-
-  if (state.status === 'loading') {
-    return <AppDetailSkeleton />
-  }
-
-  if (state.status === 'not-found') {
-    return (
-      <StatePanel
-        icon={<SearchX className="size-5" />}
-        title="没有找到这个应用"
-        description="请返回应用列表重新选择。"
-        action={<BackToAppsButton />}
-      />
-    )
-  }
-
-  if (state.status === 'error') {
-    return (
+  )
+  if (state.status === 'error') return (
       <StatePanel
         icon={<SearchX className="size-5" />}
         title="应用详情加载失败"
         description={state.message}
         action={<BackToAppsButton />}
       />
-    )
-  }
-
-  if (state.status === 'empty') {
-    return null
-  }
+  )
 
   const app = state.data
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <AdminPageHeader
-        eyebrow={
-          <>
-            <Boxes className="size-3.5" />
-            App Detail
-          </>
-        }
+        eyebrow={<><Boxes className="size-3.5" /> App Detail</>}
         title={app.name}
         description={app.description || '这个应用暂未填写描述。'}
         action={
-          <>
-            <Button asChild variant="outline" className="rounded-xl">
-              <Link to="/admin/apps">
-                <ArrowLeft className="size-4" />
-                返回应用
-              </Link>
-            </Button>
-            <Button type="button" variant="ghost" className="rounded-xl" onClick={() => void loadAppDetail()}>
-              刷新
-            </Button>
-          </>
+          <div className="flex gap-2">
+            <Button asChild variant="outline"><Link to="/admin/apps"><ArrowLeft className="size-4" /> 返回</Link></Button>
+            <Button variant="outline" size="icon" onClick={() => void loadAppDetail()}><RotateCcw className="size-4" /></Button>
+          </div>
         }
       />
 
@@ -328,204 +318,122 @@ export function AdminAppDetailPage() {
         <MetricCard label="协议" value={String(app.protocols.length)} />
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <AdminPanel
-          title="发行版"
-          description="当前应用下的发行版，发布日期由后端生成。"
-          icon={<GitBranch className="size-5" />}
-        >
-          {app.releases.length > 0 ? (
-            <ReleaseTable releases={app.releases} />
-          ) : (
-            <StatePanel
-              icon={<GitBranch className="size-5" />}
-              title="暂无发行版"
-              description="为这个应用添加第一个发行版。"
-            />
-          )}
-        </AdminPanel>
+      <AdminPanel title="发行版管理" description="管理发行版本及安装包。" icon={<GitBranch className="size-5" />}>
+        <div className="mb-4 flex justify-end gap-2">
+           <Dialog open={releaseDialogOpen} onOpenChange={(val) => {
+             setReleaseDialogOpen(val)
+             if (!val) { setEditingRelease(null); setReleaseForm(emptyReleaseForm); setReleaseError(''); }
+           }}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline"><Plus className="size-4" /> 添加发行版</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleCreateRelease}>
+                  <DialogHeader>
+                    <DialogTitle>{editingRelease ? '编辑发行版' : '添加新发行版'}</DialogTitle>
+                    <DialogDescription>填写发行版本的基本信息。</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="release-name">发行版名称</Label>
+                      <Input id="release-name" placeholder="例如 Stable 1.0" value={releaseForm.name} onChange={(e) => setReleaseForm({ ...releaseForm, name: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="release-id">版本号</Label>
+                      <Input id="release-id" placeholder="例如 1.0.0" value={releaseForm.releaseId} onChange={(e) => setReleaseForm({ ...releaseForm, releaseId: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="release-description">发行版描述</Label>
+                      <Textarea id="release-description" placeholder="说明此版本的改进..." value={releaseForm.description} onChange={(e) => setReleaseForm({ ...releaseForm, description: e.target.value })} />
+                    </div>
+                    {releaseError && <p className="text-sm font-medium text-destructive">{releaseError}</p>}
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={releaseSubmitting}>
+                      {releaseSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />}
+                      {editingRelease ? '保存修改' : '确认添加'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
 
-        <div className="space-y-6">
-          <AdminPanel title="添加发行版" icon={<Plus className="size-5" />}>
-            <form className="space-y-4" onSubmit={handleCreateRelease}>
-              <TextField
-                id="release-name"
-                label="发行版名称"
-                value={releaseForm.name}
-                autoComplete="off"
-                placeholder="例如 Stable 1.0"
-                onChange={(value) => setReleaseForm((current) => ({ ...current, name: value }))}
-              />
-              <TextField
-                id="release-id"
-                label="版本号"
-                value={releaseForm.releaseId}
-                autoComplete="off"
-                placeholder="例如 1.0.0"
-                onChange={(value) => setReleaseForm((current) => ({ ...current, releaseId: value }))}
-              />
-              <TextAreaField
-                id="release-description"
-                label="描述"
-                value={releaseForm.description}
-                placeholder="输入发行版说明"
-                onChange={(value) => setReleaseForm((current) => ({ ...current, description: value }))}
-              />
-
-              {releaseError ? <InlineMessage tone="error" message={releaseError} /> : null}
-              {releaseSuccess ? <InlineMessage tone="success" message={releaseSuccess} /> : null}
-
-              <Button
-                type="submit"
-                size="lg"
-                className="h-11 w-full rounded-xl shadow-apple-md"
-                disabled={releaseSubmitting}
-              >
-                {releaseSubmitting ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Plus className="size-4" />
-                )}
-                {releaseSubmitting ? '正在添加' : '添加发行版'}
-              </Button>
-            </form>
-          </AdminPanel>
-
-          <AdminPanel title="上传安装包" description="选择发行版和渠道后上传实体软件文件。" icon={<Upload className="size-5" />}>
-            <form className="space-y-4" onSubmit={handleUploadSoft}>
-              <TextField
-                id="soft-name"
-                label="安装包名称"
-                value={softForm.name}
-                autoComplete="off"
-                placeholder="例如 Windows 安装包"
-                onChange={(value) => setSoftForm((current) => ({ ...current, name: value }))}
-              />
-              <SelectField
-                id="soft-release"
-                label="所属发行版"
-                value={softForm.releaseId}
-                onChange={(value) => setSoftForm((current) => ({ ...current, releaseId: value }))}
-              >
-                <option value="">请选择发行版</option>
-                {app.releases.map((release) => (
-                  <option key={release.id} value={release.id}>
-                    {release.name} / {release.releaseId}
-                  </option>
-                ))}
-              </SelectField>
-              <SelectField
-                id="soft-channel"
-                label="发布渠道"
-                value={softForm.channelId}
-                onChange={(value) => setSoftForm((current) => ({ ...current, channelId: value }))}
-              >
-                <option value="">请选择渠道</option>
-                {channels.map((channel) => (
-                  <option key={channel.id} value={channel.id}>
-                    {channel.name}
-                  </option>
-                ))}
-              </SelectField>
-              <FileField
-                id="soft-file"
-                label="安装包文件"
-                file={softForm.file}
-                onChange={(file) => setSoftForm((current) => ({ ...current, file }))}
-              />
-              <TextAreaField
-                id="soft-description"
-                label="描述"
-                value={softForm.description}
-                placeholder="输入安装包说明"
-                rows={3}
-                onChange={(value) => setSoftForm((current) => ({ ...current, description: value }))}
-              />
-
-              {softError ? <InlineMessage tone="error" message={softError} /> : null}
-              {softSuccess ? <InlineMessage tone="success" message={softSuccess} /> : null}
-
-              <Button
-                type="submit"
-                size="lg"
-                className="h-11 w-full rounded-xl shadow-apple-md"
-                disabled={softSubmitting}
-              >
-                {softSubmitting ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Upload className="size-4" />
-                )}
-                {softSubmitting ? '正在上传' : '上传安装包'}
-              </Button>
-            </form>
-          </AdminPanel>
+            <Dialog open={softDialogOpen} onOpenChange={setSoftDialogOpen}>
+              <DialogTrigger asChild><Button size="sm"><Upload className="size-4" /> 上传安装包</Button></DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleUploadSoft}>
+                  <DialogHeader><DialogTitle>上传安装包</DialogTitle><DialogDescription>选择版本和渠道，并上传实体文件。</DialogDescription></DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="soft-name">安装包名称</Label>
+                      <Input id="soft-name" value={softForm.name} onChange={(e) => setSoftForm({ ...softForm, name: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="soft-release">所属发行版</Label>
+                      <Select value={softForm.releaseId} onValueChange={(val) => setSoftForm({ ...softForm, releaseId: val })}>
+                        <SelectTrigger id="soft-release"><SelectValue placeholder="选择发行版" /></SelectTrigger>
+                        <SelectContent>{app.releases.map((r) => <SelectItem key={r.id} value={r.id}>{r.name} ({r.releaseId})</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="soft-channel">发布渠道</Label>
+                      <Select value={softForm.channelId} onValueChange={(val) => setSoftForm({ ...softForm, channelId: val })}>
+                        <SelectTrigger id="soft-channel"><SelectValue placeholder="选择渠道" /></SelectTrigger>
+                        <SelectContent>{channels.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="soft-file">文件</Label>
+                      <div className="flex flex-col gap-2">
+                        <label htmlFor="soft-file" className="flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-input bg-muted/30 px-4 py-2 text-center text-xs hover:bg-muted/50">
+                          <FileArchive className="size-4 text-primary" />
+                          <span className="max-w-full truncate font-medium">{softForm.file ? softForm.file.name : '点击选择文件'}</span>
+                        </label>
+                        <input id="soft-file" type="file" className="sr-only" onChange={(e) => setSoftForm({ ...softForm, file: e.target.files?.[0] ?? null })} />
+                      </div>
+                    </div>
+                    {softError && <p className="text-sm font-medium text-destructive">{softError}</p>}
+                  </div>
+                  <DialogFooter><Button type="submit" disabled={softSubmitting}>{softSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />} 确认上传</Button></DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
         </div>
-      </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <AdminPanel
-          title="协议"
-          description="当前应用下的协议和隐私说明。"
-          icon={<BookText className="size-5" />}
-        >
-          {app.protocols.length > 0 ? (
-            <ProtocolTable protocols={app.protocols} />
-          ) : (
-            <StatePanel
-              icon={<BookText className="size-5" />}
-              title="暂无协议"
-              description="为这个应用添加协议或隐私说明。"
-            />
-          )}
-        </AdminPanel>
+        {app.releases.length > 0 ? (
+          <ReleaseTable releases={app.releases} onEdit={openEditRelease} onDelete={(id) => setDeleteTarget({ type: 'release', id })} />
+        ) : (
+          <StatePanel icon={<GitBranch className="size-5" />} title="暂无发行版" description="为这个应用添加第一个发行版以开始分发软件。" />
+        )}
+      </AdminPanel>
 
-        <AdminPanel title="添加协议" icon={<Plus className="size-5" />}>
-          <form className="space-y-4" onSubmit={handleCreateProtocol}>
-            <TextField
-              id="protocol-name"
-              label="协议名称"
-              value={protocolForm.name}
-              autoComplete="off"
-              placeholder="例如 用户协议"
-              onChange={(value) => setProtocolForm((current) => ({ ...current, name: value }))}
-            />
-            <TextAreaField
-              id="protocol-description"
-              label="描述"
-              value={protocolForm.description}
-              placeholder="输入协议描述"
-              rows={3}
-              onChange={(value) => setProtocolForm((current) => ({ ...current, description: value }))}
-            />
-            <TextAreaField
-              id="protocol-context"
-              label="协议正文"
-              value={protocolForm.context}
-              placeholder="输入协议正文"
-              rows={8}
-              onChange={(value) => setProtocolForm((current) => ({ ...current, context: value }))}
-            />
+      <AdminPanel title="应用协议" description="管理协议、隐私说明和法律文本。" icon={<BookText className="size-5" />}>
+        <div className="mb-4 flex justify-end">
+          <Button asChild size="sm"><Link to={`/admin/apps/${id}/add-protocol`}><Plus className="size-4" /> 添加协议</Link></Button>
+        </div>
+        {app.protocols.length > 0 ? (
+          <ProtocolTable 
+            appId={id!} 
+            protocols={app.protocols} 
+            onDelete={(id) => setDeleteTarget({ type: 'protocol', id })} 
+          />
+        ) : (
+          <StatePanel icon={<BookText className="size-5" />} title="暂无协议" description="为这个应用添加协议或隐私说明。" />
+        )}
+      </AdminPanel>
 
-            {protocolError ? <InlineMessage tone="error" message={protocolError} /> : null}
-            {protocolSuccess ? <InlineMessage tone="success" message={protocolSuccess} /> : null}
-
-            <Button
-              type="submit"
-              size="lg"
-              className="h-11 w-full rounded-xl shadow-apple-md"
-              disabled={protocolSubmitting}
-            >
-              {protocolSubmitting ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Plus className="size-4" />
-              )}
-              {protocolSubmitting ? '正在添加' : '添加协议'}
-            </Button>
-          </form>
-        </AdminPanel>
-      </div>
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除？</AlertDialogTitle>
+            <AlertDialogDescription>此操作无法撤销。相关联的数据也将可能受到影响。</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">确认删除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -535,35 +443,41 @@ function MetricCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-border/60 bg-card/70 p-5 shadow-apple-sm">
       <span className="text-sm font-medium text-muted-foreground">{label}</span>
       <div className="mt-4">
-        {label === '状态' ? <StatusBadge active={value === '启用'} /> : <p className="text-3xl font-bold">{value}</p>}
+        {label === '状态' ? <StatusBadge active={value === '启用'} /> : <p className="text-3xl font-bold tracking-tight">{value}</p>}
       </div>
     </div>
   )
 }
 
-function ReleaseTable({ releases }: { releases: ReleaseDto[] }) {
+function ReleaseTable({ releases, onEdit, onDelete }: { releases: ReleaseDto[], onEdit: (r: ReleaseDto) => void, onDelete: (id: string) => void }) {
   return (
     <TableShell minWidth={900}>
-      <thead className="bg-secondary/60 text-xs font-medium text-muted-foreground">
+      <thead className="bg-muted/50 text-xs font-medium text-muted-foreground">
         <tr>
           <th className="px-4 py-3">名称</th>
           <th className="px-4 py-3">版本号</th>
           <th className="px-4 py-3">发布日期</th>
           <th className="px-4 py-3">描述</th>
           <th className="px-4 py-3">安装包</th>
+          <th className="px-4 py-3 text-right">操作</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-border/60">
+      <tbody className="divide-y divide-border/40">
         {releases.map((release) => (
-          <tr key={release.id} className="bg-background/40">
+          <tr key={release.id} className="hover:bg-muted/30 transition-colors group">
             <td className="px-4 py-3 font-medium text-foreground">{release.name}</td>
             <td className="px-4 py-3 text-muted-foreground">{release.releaseId}</td>
             <td className="px-4 py-3 text-muted-foreground">{formatDate(release.releaseDate)}</td>
-            <td className="max-w-sm px-4 py-3 text-muted-foreground">
-              <span className="line-clamp-2">{release.description || '暂无描述'}</span>
-            </td>
-            <td className="px-4 py-3">
-              <SoftList softs={release.softs} />
+            <td className="max-w-sm px-4 py-3 text-muted-foreground"><span className="line-clamp-2">{release.description || '暂无描述'}</span></td>
+            <td className="px-4 py-3"><SoftList softs={release.softs} /></td>
+            <td className="px-4 py-3 text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="size-4" /></Button></DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onEdit(release)}><Pencil className="mr-2 size-4" /> 编辑</DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(release.id)}><Trash2 className="mr-2 size-4" /> 删除</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </td>
           </tr>
         ))}
@@ -573,25 +487,17 @@ function ReleaseTable({ releases }: { releases: ReleaseDto[] }) {
 }
 
 function SoftList({ softs }: { softs: SoftDto[] }) {
-  if (softs.length === 0) {
-    return <span className="text-muted-foreground">暂无安装包</span>
-  }
-
+  if (softs.length === 0) return <span className="text-muted-foreground text-xs italic">暂无包</span>
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5 py-1">
       {softs.map((soft) => (
-        <div key={soft.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/70 px-3 py-2">
+        <div key={soft.id} className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-2 py-1.5">
           <div className="min-w-0">
-            <p className="truncate font-medium text-foreground">{soft.name}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {soft.channel?.name ?? '未设置渠道'}
-              {soft.description ? ` · ${soft.description}` : ''}
-            </p>
+            <p className="truncate text-xs font-medium text-foreground">{soft.name}</p>
+            <p className="truncate text-[10px] text-muted-foreground uppercase font-semibold">{soft.channel?.name ?? 'DEFAULT'}</p>
           </div>
-          <Button asChild variant="ghost" size="icon" className="size-8 shrink-0 rounded-lg" title="下载安装包">
-            <a href={resolveApiUrl(soft.softUrl)} target="_blank" rel="noreferrer">
-              <Download className="size-4" />
-            </a>
+          <Button asChild variant="ghost" size="icon" className="size-7 shrink-0 rounded-md" title="下载">
+            <a href={resolveApiUrl(soft.softUrl)} target="_blank" rel="noreferrer"><Download className="size-3.5" /></a>
           </Button>
         </div>
       ))}
@@ -599,59 +505,32 @@ function SoftList({ softs }: { softs: SoftDto[] }) {
   )
 }
 
-function FileField({
-  id,
-  label,
-  file,
-  onChange,
-}: {
-  id: string
-  label: string
-  file: File | null
-  onChange: (file: File | null) => void
-}) {
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground" htmlFor={id}>
-        {label}
-      </label>
-      <label
-        htmlFor={id}
-        className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-input bg-background/80 px-4 py-4 text-center text-sm transition hover:border-ring hover:bg-secondary/50"
-      >
-        <FileArchive className="size-5 text-primary" />
-        <span className="max-w-full truncate text-foreground">{file ? file.name : '点击选择安装包文件'}</span>
-        {file ? <span className="text-xs text-muted-foreground">{formatFileSize(file.size)}</span> : null}
-      </label>
-      <input
-        id={id}
-        type="file"
-        className="sr-only"
-        onChange={(event) => onChange(event.target.files?.[0] ?? null)}
-      />
-    </div>
-  )
-}
-
-function ProtocolTable({ protocols }: { protocols: ProtocolDto[] }) {
+function ProtocolTable({ appId, protocols, onDelete }: { appId: string, protocols: ProtocolDto[], onDelete: (id: string) => void }) {
   return (
     <TableShell minWidth={720}>
-      <thead className="bg-secondary/60 text-xs font-medium text-muted-foreground">
+      <thead className="bg-muted/50 text-xs font-medium text-muted-foreground">
         <tr>
           <th className="px-4 py-3">名称</th>
           <th className="px-4 py-3">描述</th>
           <th className="px-4 py-3">正文预览</th>
+          <th className="px-4 py-3 text-right">操作</th>
         </tr>
       </thead>
-      <tbody className="divide-y divide-border/60">
+      <tbody className="divide-y divide-border/40">
         {protocols.map((protocol) => (
-          <tr key={protocol.id} className="bg-background/40">
+          <tr key={protocol.id} className="hover:bg-muted/30 transition-colors">
             <td className="px-4 py-3 font-medium text-foreground">{protocol.name}</td>
-            <td className="max-w-xs px-4 py-3 text-muted-foreground">
-              <span className="line-clamp-2">{protocol.description || '暂无描述'}</span>
-            </td>
-            <td className="max-w-md px-4 py-3 text-muted-foreground">
-              <span className="line-clamp-2">{truncateText(protocol.context || '暂无正文')}</span>
+            <td className="max-w-xs px-4 py-3 text-muted-foreground"><span className="line-clamp-2">{protocol.description || '暂无描述'}</span></td>
+            <td className="max-w-md px-4 py-3 text-muted-foreground"><span className="line-clamp-2 italic font-mono text-xs">{truncateText(protocol.context || '暂无正文')}</span></td>
+            <td className="px-4 py-3 text-right">
+              <div className="flex justify-end gap-1">
+                <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                  <Link to={`/admin/apps/${appId}/protocols/${protocol.id}`}><Pencil className="size-4" /></Link>
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDelete(protocol.id)}>
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </td>
           </tr>
         ))}
@@ -664,95 +543,34 @@ function countSofts(releases: ReleaseDto[]) {
   return releases.reduce((total, release) => total + release.softs.length, 0)
 }
 
-function formatFileSize(size: number) {
-  if (size < 1024) {
-    return `${size} B`
-  }
-
-  if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(1)} KB`
-  }
-
-  return `${(size / 1024 / 1024).toFixed(1)} MB`
-}
-
 function AppDetailSkeleton() {
   return (
     <div className="space-y-6">
       <div className="h-32 animate-pulse rounded-2xl border border-border/60 bg-card/60" />
-      <div className="grid gap-4 sm:grid-cols-3">
-        {Array.from({ length: 3 }, (_, index) => (
-          <div key={index} className="h-24 animate-pulse rounded-2xl border border-border/60 bg-card/60" />
-        ))}
-      </div>
+      <div className="grid gap-4 sm:grid-cols-4">{Array.from({ length: 4 }, (_, index) => (<div key={index} className="h-24 animate-pulse rounded-2xl border border-border/60 bg-card/60" />))}</div>
       <div className="h-80 animate-pulse rounded-2xl border border-border/60 bg-card/60" />
     </div>
   )
 }
 
 function BackToAppsButton() {
-  return (
-    <Button asChild>
-      <Link to="/admin/apps">
-        <ArrowLeft className="size-4" />
-        返回应用
-      </Link>
-    </Button>
-  )
+  return <Button asChild><Link to="/admin/apps"><ArrowLeft className="size-4" /> 返回应用列表</Link></Button>
 }
 
 function validateReleaseForm(form: NewReleaseForm) {
-  if (!form.name.trim()) {
-    return '请输入发行版名称。'
-  }
-
-  if (!form.releaseId.trim()) {
-    return '请输入版本号。'
-  }
-
-  if (!form.description.trim()) {
-    return '请输入发行版描述。'
-  }
-
-  return ''
-}
-
-function validateProtocolForm(form: NewProtocolForm) {
-  if (!form.name.trim()) {
-    return '请输入协议名称。'
-  }
-
-  if (!form.description.trim()) {
-    return '请输入协议描述。'
-  }
-
-  if (!form.context.trim()) {
-    return '请输入协议正文。'
-  }
-
+  if (!form.name.trim()) return '请输入发行版名称。'
+  if (!form.releaseId.trim()) return '请输入版本号。'
   return ''
 }
 
 function validateSoftForm(form: NewSoftForm) {
-  if (!form.name.trim()) {
-    return '请输入安装包名称。'
-  }
-
-  if (!form.releaseId) {
-    return '请选择所属发行版。'
-  }
-
-  if (!form.channelId) {
-    return '请选择发布渠道。'
-  }
-
-  if (!form.file) {
-    return '请选择要上传的安装包文件。'
-  }
-
+  if (!form.name.trim()) return '请输入名称。'
+  if (!form.releaseId) return '请选择发行版。'
+  if (!form.channelId) return '请选择渠道。'
+  if (!form.file) return '请选择文件。'
   return ''
 }
 
 function isNotFoundError(error: unknown) {
-  return typeof error === 'object' && error !== null && 'status' in error && error.status === 404
+  return typeof error === 'object' && error !== null && 'status' in error && (error as any).status === 404
 }

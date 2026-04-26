@@ -8,22 +8,29 @@ import { LoginPage } from '@/pages/LoginPage'
 
 function App() {
   return (
-    <AppLayout>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/apps/:id" element={<AppDetailPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/admin/*"
-          element={
-            <RequireAdmin>
-              <AdminPage />
-            </RequireAdmin>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AppLayout>
+    <Routes>
+      <Route
+        path="/admin/*"
+        element={
+          <RequireAdmin>
+            <AdminPage />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="*"
+        element={
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/apps/:id" element={<AppDetailPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AppLayout>
+        }
+      />
+    </Routes>
   )
 }
 

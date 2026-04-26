@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import {
   ArrowDownToLine,
@@ -10,13 +10,10 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/button'
-
-type ThemeMode = 'light' | 'dark'
-
-const themeStorageKey = 'downloader-theme'
+import { useTheme } from '@/components/theme-provider'
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { theme, toggleTheme } = useThemeMode()
+  const { theme, setTheme } = useTheme()
 
   return (
     <div className="min-h-svh bg-background text-foreground transition-colors duration-300">
@@ -27,7 +24,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_-10%,color-mix(in_oklch,var(--primary)_14%,transparent)_0%,transparent_100%)] dark:bg-[radial-gradient(ellipse_70%_60%_at_50%_-10%,color-mix(in_oklch,var(--primary)_9%,transparent)_0%,transparent_100%)]" />
       </div>
 
-      <AppHeader theme={theme} toggleTheme={toggleTheme} />
+      <AppHeader theme={theme} setTheme={setTheme} />
 
       <main className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-12 lg:px-10 lg:py-16">
         {children}
@@ -38,10 +35,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
 function AppHeader({
   theme,
-  toggleTheme,
+  setTheme,
 }: {
-  theme: ThemeMode
-  toggleTheme: () => void
+  theme: string
+  setTheme: (theme: any) => void
 }) {
   const navigate = useNavigate()
   const { status, user, logout } = useAuth()
@@ -51,6 +48,8 @@ function AppHeader({
     logout()
     navigate('/login', { replace: true })
   }
+
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark')
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/50 bg-background/75 backdrop-blur-xl supports-backdrop-filter:bg-background/65">
@@ -113,29 +112,4 @@ function AppHeader({
       </div>
     </header>
   )
-}
-
-function useThemeMode() {
-  const [theme, setTheme] = useState<ThemeMode>(() => getInitialTheme())
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark')
-    document.documentElement.style.colorScheme = theme
-    localStorage.setItem(themeStorageKey, theme)
-  }, [theme])
-
-  return {
-    theme,
-    toggleTheme: () => setTheme((current) => (current === 'dark' ? 'light' : 'dark')),
-  }
-}
-
-function getInitialTheme(): ThemeMode {
-  const storedTheme = localStorage.getItem(themeStorageKey)
-
-  if (storedTheme === 'light' || storedTheme === 'dark') {
-    return storedTheme
-  }
-
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
