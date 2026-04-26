@@ -55,7 +55,7 @@ public class ReleaseService(IReleaseRepo releaseRepo, IAppRepo appRepo) : IRelea
             Description = dto.Description,
             ReleaseId = dto.ReleaseId,
             ReleaseDate = DateTime.UtcNow,
-            AppModel = app
+            AppModelId = app.Id
         };
 
         await releaseRepo.CreateAsync(release);

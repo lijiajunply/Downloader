@@ -19,5 +19,8 @@ public class ProtocolModel
     [MaxLength(512_000)]
     public string Context { get; set; } = "";
 
-    public AppModel App { get; set; } = new();
+    [MaxLength(64)]
+    public string AppId { get; set; } = "";
+
+    public AppModel App { get; set; } = null!;
 }

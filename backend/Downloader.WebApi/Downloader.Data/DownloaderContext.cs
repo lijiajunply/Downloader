@@ -18,7 +18,10 @@ public class DownloaderContext(DbContextOptions<DownloaderContext> options) : Db
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<UserModel>().HasMany(x => x.Apps).WithOne(x => x.User);
+        modelBuilder.Entity<UserModel>()
+            .HasMany(x => x.Apps)
+            .WithOne(x => x.User)
+            .HasForeignKey(x => x.UserId);
 
         modelBuilder.Entity<AppModel>().HasMany(x => x.Releases).WithOne(x => x.AppModel);
         modelBuilder.Entity<AppModel>().HasMany(x => x.Protocols).WithOne(x => x.App);

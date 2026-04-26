@@ -17,6 +17,9 @@ public class AppModel
     public List<ReleaseModel> Releases { get; set; } = [];
 
     public List<ProtocolModel> Protocols { get; set; } = [];
-    
-    public UserModel User { get; set; } = new();
+
+    [MaxLength(64)]
+    public string UserId { get; set; } = "";
+
+    public UserModel User { get; set; } = null!;
 }

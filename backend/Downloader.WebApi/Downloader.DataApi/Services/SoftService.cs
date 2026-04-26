@@ -54,8 +54,8 @@ public class SoftService(ISoftRepo softRepo, IReleaseRepo releaseRepo, IChannelR
             Name = dto.Name,
             SoftUrl = dto.SoftUrl,
             Description = dto.Description,
-            Release = release,
-            Channel = channel
+            ReleaseId = release.Id,
+            ChannelId = channel.Id
         };
 
         await softRepo.CreateAsync(soft);
@@ -65,7 +65,12 @@ public class SoftService(ISoftRepo softRepo, IReleaseRepo releaseRepo, IChannelR
             Id = soft.Id,
             Name = soft.Name,
             SoftUrl = soft.SoftUrl,
-            Description = soft.Description
+            Description = soft.Description,
+            Channel = channel != null! ? new ChannelDto
+            {
+                Id = channel.Id,
+                Name = channel.Name
+            } : null
         };
     }
 

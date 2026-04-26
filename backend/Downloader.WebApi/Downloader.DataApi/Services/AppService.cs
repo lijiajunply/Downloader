@@ -67,7 +67,7 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
                     Name = s.Name,
                     Description = s.Description,
                     SoftUrl = s.SoftUrl,
-                    Channel = s.Channel != null ? new ChannelDto
+                    Channel = s.Channel != null! ? new ChannelDto
                     {
                         Id = s.Channel.Id,
                         Name = s.Channel.Name
@@ -107,7 +107,7 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
                 Name = s.Name,
                 Description = s.Description,
                 SoftUrl = s.SoftUrl,
-                Channel = s.Channel != null ? new ChannelDto
+                Channel = s.Channel != null! ? new ChannelDto
                 {
                     Id = s.Channel.Id,
                     Name = s.Channel.Name
@@ -127,7 +127,7 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
             Name = dto.Name,
             Description = dto.Description,
             IsActive = true,
-            User = user
+            UserId = user.Id
         };
 
         await appRepo.CreateAsync(app);

@@ -13,7 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { getApp } from '@/services'
+import { getApp, resolveApiUrl } from '@/services'
 import type { AppDetailDto, ProtocolDto, ReleaseDto, SoftDto } from '@/types'
 import {
   type LoadState,
@@ -239,7 +239,7 @@ function SoftCard({ soft }: { soft: SoftDto }) {
         </span>
       </div>
       <a
-        href={soft.softUrl}
+        href={resolveApiUrl(soft.softUrl)}
         target="_blank"
         rel="noreferrer"
         className="mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border border-border/60 bg-card/80 px-3.5 py-2 text-sm font-medium text-foreground shadow-apple-sm transition-all duration-200 hover:border-primary/30 hover:text-primary hover:shadow-apple-md"

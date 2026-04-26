@@ -52,7 +52,7 @@ public class ProtocolService(IProtocolRepo protocolRepo, IAppRepo appRepo) : IPr
             Name = dto.Name,
             Description = dto.Description,
             Context = dto.Context,
-            App = app
+            AppId = app.Id
         };
 
         await protocolRepo.CreateAsync(protocol);

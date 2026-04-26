@@ -20,6 +20,9 @@ public class ReleaseModel
     [MaxLength(64)]
     public string ReleaseId { get; set; } = "";
 
-    public AppModel AppModel { get; set; } = new();
+    [MaxLength(64)]
+    public string AppModelId { get; set; } = "";
+
+    public AppModel AppModel { get; set; } = null!;
     public List<SoftModel> SoftModels { get; set; } = [];
 }

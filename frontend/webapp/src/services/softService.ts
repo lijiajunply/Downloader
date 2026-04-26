@@ -19,6 +19,24 @@ export function createSoft(dto: SoftCreateDto, token?: string) {
   })
 }
 
+export function uploadSoftPackage(
+  dto: Omit<SoftCreateDto, 'softUrl'> & { file: File },
+  token?: string,
+) {
+  const formData = new FormData()
+  formData.set('name', dto.name)
+  formData.set('description', dto.description)
+  formData.set('releaseId', dto.releaseId)
+  formData.set('channelId', dto.channelId)
+  formData.set('file', dto.file)
+
+  return apiRequest<SoftDto>(`${softPath}/upload`, {
+    method: 'POST',
+    body: formData,
+    token,
+  })
+}
+
 export function updateSoft(id: string, dto: SoftUpdateDto, token?: string) {
   return apiRequest<void>(`${softPath}/${encodeURIComponent(id)}`, {
     method: 'PUT',

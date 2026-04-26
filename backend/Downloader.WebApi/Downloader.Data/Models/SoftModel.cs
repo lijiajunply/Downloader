@@ -20,7 +20,11 @@ public class SoftModel
 
     [MaxLength(64)] public string Description { get; set; } = "";
 
-    public ReleaseModel Release { get; set; } = new();
+    [MaxLength(64)] public string ReleaseId { get; set; } = "";
 
-    public ChannelModel Channel { get; set; } = new();
+    public ReleaseModel Release { get; set; } = null!;
+
+    [MaxLength(64)] public string ChannelId { get; set; } = "";
+
+    public ChannelModel Channel { get; set; } = null!;
 }

@@ -60,3 +60,5 @@ _ReSharper*/
 *.db-wal
 
 keys/
+
+wwwroot/upload/

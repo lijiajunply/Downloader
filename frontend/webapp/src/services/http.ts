@@ -27,10 +27,11 @@ export async function apiRequest<T>(
   const { method = 'GET', body, token, query, headers } = options
   const url = buildUrl(path, query)
   const requestHeaders = new Headers(headers)
+  const isFormData = body instanceof FormData
 
   requestHeaders.set('Accept', 'application/json')
 
-  if (body !== undefined) {
+  if (body !== undefined && !isFormData) {
     requestHeaders.set('Content-Type', 'application/json')
   }
 
@@ -41,7 +42,7 @@ export async function apiRequest<T>(
   const response = await fetch(url, {
     method,
     headers: requestHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: getRequestBody(body, isFormData),
   })
 
   if (!response.ok) {
@@ -72,6 +73,22 @@ function buildUrl(
   }
 
   return url.toString()
+}
+
+export function resolveApiUrl(path: string) {
+  return buildUrl(path)
+}
+
+function getRequestBody(body: unknown, isFormData: boolean) {
+  if (body === undefined) {
+    return undefined
+  }
+
+  if (isFormData) {
+    return body as BodyInit
+  }
+
+  return JSON.stringify(body)
 }
 
 async function readResponseBody(response: Response): Promise<unknown> {
