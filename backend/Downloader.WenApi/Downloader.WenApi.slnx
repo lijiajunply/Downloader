@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="compose.yaml" />
+  </Folder>
+  <Project Path="Downloader.Data/Downloader.Data.csproj" />
+  <Project Path="Downloader.DataApi/Downloader.DataApi.csproj" />
+  <Project Path="Downloader.Test/Downloader.Test.csproj" />
+  <Project Path="Downloader.WebApi\Downloader.WebApi.csproj" />
+</Solution>

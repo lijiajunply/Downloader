@@ -1,0 +1,7 @@
+﻿services:
+  downloader.wenapi:
+    image: downloader.wenapi
+    build:
+      context: .
+      dockerfile: Downloader.WenApi/Dockerfile
+
