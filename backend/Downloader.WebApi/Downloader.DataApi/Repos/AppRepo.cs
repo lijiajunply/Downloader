@@ -36,6 +36,7 @@ public class AppRepo(IDbContextFactory<DownloaderContext> contextFactory) : IApp
             .Include(a => a.Releases)
                 .ThenInclude(r => r.SoftModels)
                     .ThenInclude(s => s.Channel)
+            .Include(a => a.Protocols)
             .FirstOrDefaultAsync(a => a.Id == id);
     }
 

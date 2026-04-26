@@ -73,6 +73,13 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
                         Name = s.Channel.Name
                     } : null
                 }).ToList()
+            }).ToList(),
+            Protocols = app.Protocols.Select(p => new ProtocolDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                Context = p.Context
             }).ToList()
         };
     }

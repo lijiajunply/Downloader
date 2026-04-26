@@ -11,6 +11,7 @@ public class AppDto
 public class AppDetailDto : AppDto
 {
     public List<ReleaseDto> Releases { get; set; } = [];
+    public List<ProtocolDto> Protocols { get; set; } = [];
 }
 
 public class AppLatestVersionDto

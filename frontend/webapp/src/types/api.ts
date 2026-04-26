@@ -7,6 +7,7 @@ export interface AppDto {
 
 export interface AppDetailDto extends AppDto {
   releases: ReleaseDto[]
+  protocols: ProtocolDto[]
 }
 
 export interface AppLatestVersionDto {

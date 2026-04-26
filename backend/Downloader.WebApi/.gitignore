@@ -54,3 +54,9 @@ _ReSharper*/
 
 # DotNetCliToolReference
 .dotnet/
+
+*.db
+*.db-shm
+*.db-wal
+
+keys/
