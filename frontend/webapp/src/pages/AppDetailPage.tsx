@@ -161,21 +161,21 @@ function AppDetail({ app }: { app: AppDetailDto }) {
       {/* Ratings/Info Row */}
       <div className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-0 no-scrollbar sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible">
         <div className="flex flex-col items-center justify-center min-w-24 border-r border-border/50 px-2 last:border-0 sm:border-r">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">版本数量</span>
+          <span className="text-[14px] font-bold text-muted-foreground uppercase tracking-wider">版本数量</span>
           <span className="text-xl font-bold mt-0.5">{app.releases.length}</span>
-          <span className="text-[10px] text-muted-foreground">已发布</span>
+          <span className="text-[14px] text-muted-foreground">已发布</span>
         </div>
         <div className="flex flex-col items-center justify-center min-w-24 border-r border-border/50 px-2 last:border-0 sm:border-r">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">最新版本</span>
+          <span className="text-[14px] font-bold text-muted-foreground uppercase tracking-wider">最新版本</span>
           <span className="text-xl font-bold mt-0.5">{latestRelease?.releaseId || '--'}</span>
-          <span className="text-[10px] text-muted-foreground">{latestRelease ? formatDate(latestRelease.releaseDate) : '暂无'}</span>
+          <span className="text-[14px] text-muted-foreground">{latestRelease ? formatDate(latestRelease.releaseDate) : '暂无'}</span>
         </div>
         <div className="flex flex-col items-center justify-center min-w-24 border-r border-border/50 px-2 last:border-0 sm:border-r">
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">隐私说明</span>
+          <span className="text-[14px] font-bold text-muted-foreground uppercase tracking-wider">隐私说明</span>
           <span className="text-xl font-bold mt-0.5 flex items-center gap-1">
             <ShieldCheck className="size-5" />
           </span>
-          <span className="text-[10px] text-muted-foreground">{app.protocols.length} 项协议</span>
+          <span className="text-[14px] text-muted-foreground">{app.protocols.length} 项协议</span>
         </div>
       </div>
 
@@ -265,20 +265,13 @@ function AppDetail({ app }: { app: AppDetailDto }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-bold">{protocol.name}</p>
-                      <Link to="#" className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Link to={`/protocols/${protocol.id}`} className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                         查看条款
                       </Link>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
                       {protocol.description || '此协议规定了软件的使用权限、用户的权利与义务以及隐私保护相关事宜。'}
                     </p>
-                    {protocol.context && (
-                      <div className="mt-2 bg-background/40 rounded-lg p-2.5 border border-border/5">
-                        <p className="text-[10px] text-muted-foreground font-mono leading-tight truncate">
-                          ID: {protocol.id}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}

@@ -52,9 +52,6 @@ export function HomePage() {
         <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)]" />
         
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000 space-y-6 px-4">
-          <Badge variant="outline" className="px-3 py-1 text-sm font-medium border-primary/20 bg-primary/5 text-primary">
-            应用分发平台 v2.0
-          </Badge>
           <h1 className="max-w-4xl text-balance text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl lg:text-8xl">
             探索无限可能<br />
             <span className="bg-linear-to-b from-foreground to-foreground/60 bg-clip-text text-transparent italic">分享每一个精彩应用</span>

@@ -220,15 +220,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <Link to="/" className="flex w-full items-center gap-2 cursor-pointer">
-                       <ArrowLeft className="size-4" />
-                       返回首页
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
                 <DropdownMenuLabel className="px-2 py-1.5 text-xs font-normal text-muted-foreground">外观模式</DropdownMenuLabel>
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => setTheme("light")} className="gap-2 cursor-pointer">
