@@ -8,7 +8,6 @@ import { getErrorMessage } from './pageUtils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 
 export function HomePage() {
   const [state, setState] = useState<LoadState<AppDto[]>>({ status: 'loading' })

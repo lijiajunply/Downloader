@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 import {
   ArrowLeft,
   CircleAlert,
-  FileText,
   SearchX,
   ShieldCheck,
   Calendar,
-  Share,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getProtocol } from '@/services/protocolService'
