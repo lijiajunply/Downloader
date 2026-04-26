@@ -39,11 +39,11 @@ export function HomePage() {
       <section className="relative flex flex-col items-center text-center">
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <h1 className="max-w-4xl text-balance text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl lg:text-8xl">
-            更优雅地分发<br />
-            <span className="bg-linear-to-b from-foreground to-foreground/60 bg-clip-text text-transparent">您的所有应用</span>
+            分享一切创造<br />
+            <span className="bg-linear-to-b from-foreground to-foreground/60 bg-clip-text text-transparent">将应用分享给所有人</span>
           </h1>
           <p className="mx-auto mt-8 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl">
-            提供简约、高效的应用管理与分发平台。基于 Apple 设计哲学，为您的软件提供最完美的呈现方式。
+            更加便捷的应用分发方式，支持多平台安装和版本管理，让应用触手可及。
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Button size="lg" className="h-12 rounded-full px-8 text-base font-medium shadow-apple-md">
