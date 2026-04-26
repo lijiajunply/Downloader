@@ -1,4 +1,4 @@
-import type { UserCreateDto, UserDto, UserUpdateDto } from '@/types'
+import type { UserChangePasswordDto, UserCreateDto, UserDto, UserUpdateDto } from '@/types'
 import { apiRequest } from './http'
 
 const userPath = '/api/User'
@@ -21,6 +21,14 @@ export function createUser(dto: UserCreateDto, token?: string) {
 
 export function updateUser(id: string, dto: UserUpdateDto, token?: string) {
   return apiRequest<void>(`${userPath}/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: dto,
+    token,
+  })
+}
+
+export function resetUserPassword(id: string, dto: UserChangePasswordDto, token?: string) {
+  return apiRequest<void>(`${userPath}/${encodeURIComponent(id)}/reset-password`, {
     method: 'PUT',
     body: dto,
     token,

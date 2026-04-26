@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using Downloader.Data;
 using Downloader.Data.Models;
@@ -6,17 +7,21 @@ using Downloader.DataApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
+using NpgsqlDataProtection;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+DotNetEnv.Env.Load();
 
-// 1. DbContextFactory
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+#region 数据库
+
+var connectionString = Environment.GetEnvironmentVariable("SQL", EnvironmentVariableTarget.Process) ??
+                       builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
 {
@@ -25,7 +30,7 @@ if (string.IsNullOrEmpty(connectionString))
         options.UseSqlite("Data Source=downloader.db");
         options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     });
-    
+
     builder.Services.AddDataProtection()
         .PersistKeysToFileSystem(new DirectoryInfo("./keys"));
 }
@@ -33,11 +38,17 @@ else
 {
     builder.Services.AddDbContextFactory<DownloaderContext>(options =>
     {
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection") ??
-                          "Host=localhost;Database=downloader;Username=postgres;Password=postgres");
+        options.UseNpgsql(connectionString);
         options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+
+        builder.Services.AddDataProtection()
+            .PersistKeysToPostgres(connectionString, true);
     });
 }
+
+#endregion
+
+#region 跨域
 
 builder.Services.AddCors(options =>
 {
@@ -54,7 +65,10 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 2. Repos & Services
+#endregion
+
+#region 仓库/服务 依赖注入
+
 builder.Services.AddScoped<IAppRepo, AppRepo>();
 builder.Services.AddScoped<IChannelRepo, ChannelRepo>();
 builder.Services.AddScoped<IProtocolRepo, ProtocolRepo>();
@@ -70,7 +84,10 @@ builder.Services.AddScoped<IReleaseService, ReleaseService>();
 builder.Services.AddScoped<ISoftService, SoftService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
-// 3. JWT Authentication
+#endregion
+
+#region 身份认证
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"] ?? "default_secret_key_needs_to_be_at_least_32_characters_long";
 
@@ -93,18 +110,38 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
+#endregion
+
+#region 控制器基本设置
+
 builder.Services.AddControllers();
-builder.Services.Configure<FormOptions>(options =>
+builder.Services.AddOpenApi();
+
+builder.Services.Configure<FormOptions>(options => { options.MultipartBodyLengthLimit = 2_147_483_648; });
+
+builder.WebHost.ConfigureKestrel(options => { options.Limits.MaxRequestBodySize = 2_147_483_648; });
+
+#endregion
+
+#region 压缩
+
+builder.Services.AddResponseCompression(options =>
 {
-    options.MultipartBodyLengthLimit = 2_147_483_648;
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
 });
 
-builder.WebHost.ConfigureKestrel(options =>
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
 {
-    options.Limits.MaxRequestBodySize = 2_147_483_648;
+    options.Level = CompressionLevel.Fastest; // 或 CompressionLevel.Optimal
 });
+
+builder.Services.Configure<GzipCompressionProviderOptions>(options => { options.Level = CompressionLevel.Fastest; });
+
+#endregion
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -112,6 +149,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 // 优化数据库迁移策略，异步执行迁移
@@ -172,6 +210,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapScalarApiReference();
 
 app.Run();

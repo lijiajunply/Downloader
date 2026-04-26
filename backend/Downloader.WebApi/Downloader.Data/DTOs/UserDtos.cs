@@ -21,6 +21,12 @@ public class UserUpdateDto
     public string Email { get; set; } = "";
     public string Identity { get; set; } = "";
 }
+
+public class UserChangePasswordDto
+{
+    public string NewPassword { get; set; } = "";
+}
+
 public class UserLoginDto
 {
     public string Username { get; set; } = "";

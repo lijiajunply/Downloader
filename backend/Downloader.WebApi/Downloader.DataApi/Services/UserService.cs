@@ -11,6 +11,7 @@ public interface IUserService
     Task<UserDto?> GetByIdAsync(string id);
     Task<UserDto> CreateAsync(UserCreateDto dto);
     Task<bool> UpdateAsync(string id, UserUpdateDto dto);
+    Task<bool> ResetPasswordAsync(string id, UserChangePasswordDto dto);
     Task<bool> DeleteAsync(string id);
 }
 
@@ -75,6 +76,16 @@ public class UserService(IUserRepo userRepo) : IUserService
 
         user.Email = dto.Email;
         user.Identity = dto.Identity;
+
+        return await userRepo.UpdateAsync(user);
+    }
+
+    public async Task<bool> ResetPasswordAsync(string id, UserChangePasswordDto dto)
+    {
+        var user = await userRepo.GetByIdAsync(id);
+        if (user == null) return false;
+
+        user.Password = dto.NewPassword.StringToHash();
 
         return await userRepo.UpdateAsync(user);
     }

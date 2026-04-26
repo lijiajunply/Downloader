@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { CheckCircle2, LoaderCircle, Plus, UsersRound, XCircle, RotateCcw, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { LoaderCircle, Plus, UsersRound, RotateCcw, MoreVertical, Pencil, Trash2, KeyRound } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/button'
-import { createUser, getUserList, updateUser, deleteUser } from '@/services'
+import { createUser, getUserList, updateUser, deleteUser, resetUserPassword } from '@/services'
 import type { UserDto } from '@/types'
 import type { LoadState } from '../pageComponents'
 import {
@@ -81,6 +81,13 @@ export function AdminUsersPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [editError, setEditError] = useState('')
+
+  // Password Reset Form
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserDto | null>(null)
+  const [resetPasswordForm, setResetPasswordForm] = useState({ newPassword: '' })
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false)
+  const [resetPasswordSubmitting, setResetPasswordSubmitting] = useState(false)
+  const [resetPasswordError, setResetPasswordError] = useState('')
 
   // Delete
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -174,6 +181,33 @@ export function AdminUsersPage() {
     }
   }
 
+  async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!token || !resetPasswordUser) return
+
+    if (!resetPasswordForm.newPassword) {
+      setResetPasswordError('请输入新密码。')
+      return
+    }
+
+    setResetPasswordSubmitting(true)
+    setResetPasswordError('')
+
+    try {
+      await resetUserPassword(resetPasswordUser.id, {
+        newPassword: resetPasswordForm.newPassword,
+      }, token)
+      setResetPasswordOpen(false)
+      setResetPasswordUser(null)
+      setResetPasswordForm({ newPassword: '' })
+    } catch (error) {
+      if (handleAuthFailure(error)) return
+      setResetPasswordError(getAdminErrorMessage(error))
+    } finally {
+      setResetPasswordSubmitting(false)
+    }
+  }
+
   async function handleDeleteUser() {
     if (!token || !deleteId) return
     try {
@@ -191,6 +225,13 @@ export function AdminUsersPage() {
     setEditForm({ email: user.email, identity: user.identity || 'User' })
     setEditError('')
     setEditOpen(true)
+  }
+
+  const openResetPassword = (user: UserDto) => {
+    setResetPasswordUser(user)
+    setResetPasswordForm({ newPassword: '' })
+    setResetPasswordError('')
+    setResetPasswordOpen(true)
   }
 
   return (
@@ -236,7 +277,7 @@ export function AdminUsersPage() {
       />
 
       <ResourceContent state={state} emptyTitle="暂无用户" emptyDescription="添加第一个用户后，列表会显示在这里。" errorTitle="用户加载失败">
-        {(users) => <UserTable users={users} onEdit={openEdit} onDelete={setDeleteId} />}
+        {(users) => <UserTable users={users} onEdit={openEdit} onResetPassword={openResetPassword} onDelete={setDeleteId} />}
       </ResourceContent>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -268,6 +309,25 @@ export function AdminUsersPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={resetPasswordOpen} onOpenChange={setResetPasswordOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={handleResetPassword}>
+            <DialogHeader>
+              <DialogTitle>重置密码: {resetPasswordUser?.username}</DialogTitle>
+              <DialogDescription>为该用户设置一个新的登录密码。</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="new-password">新密码</Label>
+                <Input id="new-password" type="password" value={resetPasswordForm.newPassword} onChange={(e) => setResetPasswordForm({ newPassword: e.target.value })} />
+              </div>
+              {resetPasswordError && <p className="text-sm font-medium text-destructive">{resetPasswordError}</p>}
+            </div>
+            <DialogFooter><Button type="submit" disabled={resetPasswordSubmitting}>{resetPasswordSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />} 确认重置</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -284,7 +344,7 @@ export function AdminUsersPage() {
   )
 }
 
-function UserTable({ users, onEdit, onDelete }: { users: UserDto[], onEdit: (u: UserDto) => void, onDelete: (id: string) => void }) {
+function UserTable({ users, onEdit, onResetPassword, onDelete }: { users: UserDto[], onEdit: (u: UserDto) => void, onResetPassword: (u: UserDto) => void, onDelete: (id: string) => void }) {
   return (
     <TableShell minWidth={680}>
       <thead className="bg-muted/50 text-xs font-medium text-muted-foreground">
@@ -292,7 +352,6 @@ function UserTable({ users, onEdit, onDelete }: { users: UserDto[], onEdit: (u: 
           <th className="px-4 py-3 text-left">用户名</th>
           <th className="px-4 py-3 text-left">邮箱</th>
           <th className="px-4 py-3 text-left">身份</th>
-          <th className="px-4 py-3 text-left">状态</th>
           <th className="px-4 py-3 text-right">操作</th>
         </tr>
       </thead>
@@ -306,17 +365,12 @@ function UserTable({ users, onEdit, onDelete }: { users: UserDto[], onEdit: (u: 
                 {item.identity || 'User'}
               </span>
             </td>
-            <td className="px-4 py-3">
-              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                {item.emailConfirmed ? <CheckCircle2 className="size-4 text-primary" /> : <XCircle className="size-4" />}
-                {item.emailConfirmed ? '已确认' : '未确认'}
-              </span>
-            </td>
             <td className="px-4 py-3 text-right">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="size-4" /></Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => onEdit(item)}><Pencil className="mr-2 size-4" /> 编辑</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onResetPassword(item)}><KeyRound className="mr-2 size-4" /> 重置密码</DropdownMenuItem>
                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(item.id)}><Trash2 className="mr-2 size-4" /> 删除</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

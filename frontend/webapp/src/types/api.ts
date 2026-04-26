@@ -126,6 +126,10 @@ export interface UserUpdateDto {
   identity: string
 }
 
+export interface UserChangePasswordDto {
+  newPassword: string
+}
+
 export interface UserLoginDto {
   username: string
   password: string

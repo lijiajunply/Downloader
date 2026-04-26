@@ -40,6 +40,14 @@ public class UserController(IUserService userService) : ControllerBase
         return NoContent();
     }
 
+    [HttpPut("{id}/reset-password")]
+    public async Task<ActionResult> ResetPassword(string id, [FromBody] UserChangePasswordDto dto)
+    {
+        var success = await userService.ResetPasswordAsync(id, dto);
+        if (!success) return NotFound();
+        return NoContent();
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(string id)
     {
