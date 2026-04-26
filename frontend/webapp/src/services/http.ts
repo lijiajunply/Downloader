@@ -1,4 +1,4 @@
-const defaultApiBaseUrl = 'https://appapi.xauat.site/'
+const defaultApiBaseUrl = 'http://localhost:5046'
 
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
