@@ -6,6 +6,7 @@ public class SoftDto
     public string Name { get; set; } = "";
     public string SoftUrl { get; set; } = "";
     public string Description { get; set; } = "";
+    public ChannelDto? Channel { get; set; }
 }
 
 public class SoftCreateDto

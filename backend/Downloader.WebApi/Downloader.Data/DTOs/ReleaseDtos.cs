@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Downloader.Data.DTOs;
 
@@ -9,6 +10,7 @@ public class ReleaseDto
     public string Description { get; set; } = "";
     public DateTime ReleaseDate { get; set; }
     public string ReleaseId { get; set; } = "";
+    public List<SoftDto> Softs { get; set; } = [];
 }
 
 public class ReleaseCreateDto

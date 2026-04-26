@@ -8,6 +8,8 @@ public interface IAppService
 {
     Task<List<AppDto>> GetAllAsync();
     Task<AppDto?> GetByIdAsync(string id);
+    Task<AppDetailDto?> GetAppDetailAsync(string id);
+    Task<AppLatestVersionDto?> GetLatestVersionAsync(string appId, string? channelId);
     Task<AppDto?> CreateAsync(AppCreateDto dto);
     Task<bool> UpdateAsync(string id, AppUpdateDto dto);
     Task<bool> DeleteAsync(string id);
@@ -38,6 +40,72 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
             Name = app.Name,
             Description = app.Description,
             IsActive = app.IsActive
+        };
+    }
+
+    public async Task<AppDetailDto?> GetAppDetailAsync(string id)
+    {
+        var app = await appRepo.GetAppWithReleasesAsync(id);
+        if (app == null) return null;
+
+        return new AppDetailDto
+        {
+            Id = app.Id,
+            Name = app.Name,
+            Description = app.Description,
+            IsActive = app.IsActive,
+            Releases = app.Releases.OrderByDescending(r => r.ReleaseDate).Select(r => new ReleaseDto
+            {
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description,
+                ReleaseId = r.ReleaseId,
+                ReleaseDate = r.ReleaseDate,
+                Softs = r.SoftModels.Select(s => new SoftDto
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    Description = s.Description,
+                    SoftUrl = s.SoftUrl,
+                    Channel = s.Channel != null ? new ChannelDto
+                    {
+                        Id = s.Channel.Id,
+                        Name = s.Channel.Name
+                    } : null
+                }).ToList()
+            }).ToList()
+        };
+    }
+
+    public async Task<AppLatestVersionDto?> GetLatestVersionAsync(string appId, string? channelId)
+    {
+        var release = await appRepo.GetLatestReleaseAsync(appId, channelId);
+        if (release == null) return null;
+
+        var softs = release.SoftModels;
+        if (!string.IsNullOrEmpty(channelId))
+        {
+            softs = softs.Where(s => s.Channel?.Id == channelId).ToList();
+        }
+
+        return new AppLatestVersionDto
+        {
+            AppId = release.AppModel.Id,
+            AppName = release.AppModel.Name,
+            ReleaseId = release.ReleaseId,
+            ReleaseDate = release.ReleaseDate,
+            Softs = softs.Select(s => new SoftDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Description = s.Description,
+                SoftUrl = s.SoftUrl,
+                Channel = s.Channel != null ? new ChannelDto
+                {
+                    Id = s.Channel.Id,
+                    Name = s.Channel.Name
+                } : null
+            }).ToList()
         };
     }
 

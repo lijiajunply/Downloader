@@ -8,6 +8,20 @@ public class AppDto
     public bool IsActive { get; set; }
 }
 
+public class AppDetailDto : AppDto
+{
+    public List<ReleaseDto> Releases { get; set; } = [];
+}
+
+public class AppLatestVersionDto
+{
+    public string AppId { get; set; } = "";
+    public string AppName { get; set; } = "";
+    public string ReleaseId { get; set; } = "";
+    public DateTime ReleaseDate { get; set; }
+    public List<SoftDto> Softs { get; set; } = [];
+}
+
 public class AppCreateDto
 {
     public string Name { get; set; } = "";
