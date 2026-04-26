@@ -1,29 +1,35 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import {
   ArrowDownToLine,
   ArrowLeft,
-  ChevronRight,
   CircleAlert,
   FileText,
-  Layers3,
   Package,
-  RefreshCw,
   SearchX,
+  ChevronRight,
+  Info,
   ShieldCheck,
+  Calendar,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getApp, resolveApiUrl } from '@/services'
-import type { AppDetailDto, ProtocolDto, ReleaseDto, SoftDto } from '@/types'
+import type { AppDetailDto } from '@/types'
 import {
   type LoadState,
-  SectionHeader,
   SoftEmptyState,
   StatePanel,
 } from './pageComponents'
 import { getErrorMessage } from './pageUtils'
 import { CourseAppShowcase } from './showcase/CourseAppShowcase'
 import { CampusMarketShowcase } from './showcase/CampusMarketShowcase'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 
 export function AppDetailPage() {
   const { id } = useParams()
@@ -109,197 +115,207 @@ export function AppDetailPage() {
 }
 
 function AppDetail({ app }: { app: AppDetailDto }) {
-  const releaseCount = app.releases.length
-  const softCount = useMemo(
-    () => app.releases.reduce((count, release) => count + release.softs.length, 0),
-    [app.releases],
-  )
-  const channels = useMemo(() => getUniqueChannels(app.releases), [app.releases])
+  const latestRelease = useMemo(() => {
+    if (app.releases.length === 0) return null
+    return [...app.releases].sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime())[0]
+  }, [app.releases])
+
+  const sortedReleases = useMemo(() => {
+    return [...app.releases].sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime())
+  }, [app.releases])
 
   return (
-    <div className="space-y-12 sm:space-y-16">
-      {/* Hero Header */}
-      <section className="relative -mt-6 flex flex-col items-start gap-8 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-6 max-w-3xl">
-          <h1 className="text-balance text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-            {app.name}
-          </h1>
-          <p className="text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl">
-            {app.description || '探索这个应用的无限可能。'}
-          </p>
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-10 sm:py-12">
+      {/* Header Section */}
+      <section className="flex gap-5 sm:gap-8 items-start">
+        <div className="shrink-0">
+          <div className="size-24 sm:size-32 lg:size-40 flex items-center justify-center rounded-[22%] bg-linear-to-br from-primary/10 to-primary/5 border border-border/40 shadow-xl overflow-hidden">
+             <Package className="size-1/2 text-primary" strokeWidth={1.5} />
+          </div>
         </div>
-
-        <div className="flex shrink-0 gap-3">
-           <Button size="lg" className="rounded-full h-12 px-6 shadow-apple-md">
-             立即获取
-           </Button>
+        
+        <div className="flex-1 min-w-0 py-1 flex flex-col h-24 sm:h-32 lg:h-40 justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight truncate">
+              {app.name}
+            </h1>
+            <p className="text-sm sm:text-lg text-muted-foreground font-medium truncate opacity-70">
+              高效实用的工具应用
+            </p>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button size="sm" className="rounded-full h-8 sm:h-9 px-6 sm:px-8 text-xs sm:text-sm font-bold bg-primary hover:bg-primary/90 shadow-sm" asChild={!!latestRelease}>
+                {latestRelease ? (
+                  <a href="#releases">获取</a>
+                ) : (
+                  <span>暂无版本</span>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Metric cards - macOS Settings style */}
-      <aside className="grid gap-4 sm:grid-cols-3">
-        <MetricCard icon={<Layers3 className="size-5" />} label="发行版" value={releaseCount} />
-        <MetricCard icon={<Package className="size-5" />} label="软件实体" value={softCount} />
-        <MetricCard icon={<ShieldCheck className="size-5" />} label="渠道" value={channels.length} />
-      </aside>
-
-      {/* Releases + Protocols */}
-      <div className="grid gap-12 xl:grid-cols-[1.4fr_0.6fr] xl:gap-16">
-        <ReleaseSection releases={app.releases} />
-        <ProtocolSection protocols={app.protocols} />
-      </div>
-    </div>
-  )
-}
-
-function ReleaseSection({ releases }: { releases: ReleaseDto[] }) {
-  return (
-    <section className="space-y-5" aria-label="发行版">
-      <SectionHeader
-        icon={<RefreshCw className="size-4" />}
-        title="发行版"
-        description="每个发行版下的软件实体和渠道。"
-      />
-      {releases.length === 0 ? (
-        <SoftEmptyState title="暂无发行版" description="这个应用还没有发布任何发行版。" />
-      ) : (
-        <div className="space-y-4">
-          {releases.map((release) => (
-            <article
-              key={release.id}
-              className="rounded-2xl border border-border/60 bg-card/70 p-6 shadow-apple-sm transition-all duration-200 hover:shadow-apple-md sm:p-7"
-            >
-              {/* Release header */}
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0 space-y-2">
-                  <h3 className="text-xl font-semibold tracking-tight">{release.name}</h3>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    {release.description || '这个发行版暂未填写描述。'}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-2 text-xs font-medium">
-                  <span className="rounded-full bg-secondary/70 px-3 py-1 text-secondary-foreground shadow-apple-sm">
-                    {release.releaseId}
-                  </span>
-                  <span className="rounded-full border border-border/60 px-3 py-1 text-muted-foreground">
-                    {formatDate(release.releaseDate)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Release body - softs grid */}
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {release.softs.length === 0 ? (
-                  <div className="sm:col-span-2">
-                    <SoftEmptyState
-                      title="暂无软件实体"
-                      description="这个发行版还没有可下载的软件实体。"
-                    />
-                  </div>
-                ) : (
-                  release.softs.map((soft) => <SoftCard key={soft.id} soft={soft} />)
-                )}
-              </div>
-            </article>
-          ))}
+      {/* Ratings/Info Row */}
+      <div className="flex overflow-x-auto pb-4 -mx-4 px-4 gap-0 no-scrollbar sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible">
+        <div className="flex flex-col items-center justify-center min-w-24 border-r border-border/50 px-2 last:border-0 sm:border-r">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">版本数量</span>
+          <span className="text-xl font-bold mt-0.5">{app.releases.length}</span>
+          <span className="text-[10px] text-muted-foreground">已发布</span>
         </div>
-      )}
-    </section>
-  )
-}
-
-function SoftCard({ soft }: { soft: SoftDto }) {
-  return (
-    <div className="rounded-xl border border-border/50 bg-background/60 p-5 shadow-apple-sm transition-all duration-200 hover:border-border/80 hover:shadow-apple-md">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-2">
-          <h4 className="line-clamp-2 font-semibold tracking-tight">{soft.name}</h4>
-          <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
-            {soft.description || '这个软件实体暂未填写描述。'}
-          </p>
+        <div className="flex flex-col items-center justify-center min-w-24 border-r border-border/50 px-2 last:border-0 sm:border-r">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">最新版本</span>
+          <span className="text-xl font-bold mt-0.5">{latestRelease?.releaseId || '--'}</span>
+          <span className="text-[10px] text-muted-foreground">{latestRelease ? formatDate(latestRelease.releaseDate) : '暂无'}</span>
         </div>
-        <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-          {soft.channel?.name ?? '未分配渠道'}
-        </span>
+        <div className="flex flex-col items-center justify-center min-w-24 border-r border-border/50 px-2 last:border-0 sm:border-r">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">隐私说明</span>
+          <span className="text-xl font-bold mt-0.5 flex items-center gap-1">
+            <ShieldCheck className="size-5" />
+          </span>
+          <span className="text-[10px] text-muted-foreground">{app.protocols.length} 项协议</span>
+        </div>
       </div>
-      <a
-        href={resolveApiUrl(soft.softUrl)}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border border-border/60 bg-card/80 px-3.5 py-2 text-sm font-medium text-foreground shadow-apple-sm transition-all duration-200 hover:border-primary/30 hover:text-primary hover:shadow-apple-md"
-      >
-        <ArrowDownToLine className="size-4 shrink-0" aria-hidden="true" />
-        <span className="truncate">下载软件</span>
-      </a>
-    </div>
-  )
-}
 
-function ProtocolSection({ protocols }: { protocols: ProtocolDto[] }) {
-  return (
-    <section className="space-y-5" aria-label="用户协议">
-      <SectionHeader
-        icon={<FileText className="size-4" />}
-        title="用户协议"
-        description="应用关联的协议、隐私政策或说明文档。"
-      />
-      {protocols.length === 0 ? (
-        <SoftEmptyState title="暂无用户协议" description="这个应用还没有关联用户协议。" />
-      ) : (
+      <Separator className="opacity-50" />
+
+      {/* Description */}
+      <section className="space-y-4">
+        <h2 className="text-xl sm:text-2xl font-bold">简介</h2>
+        <p className="text-sm sm:text-base leading-relaxed text-muted-foreground">
+          {app.description || '探索这个应用的无限可能。这是一款专为提高生产力和协作而设计的强大工具，能够帮助您在多平台间无缝同步您的工作流程。'}
+        </p>
+      </section>
+
+      {/* Releases Section */}
+      <section id="releases" className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl sm:text-2xl font-bold">发行版本</h2>
+          <Button variant="link" className="text-sm h-auto p-0 text-primary">查看全部</Button>
+        </div>
+        
         <div className="space-y-3">
-          {protocols.map((protocol) => (
-            <details
-              key={protocol.id}
-              className="group rounded-2xl border border-border/60 bg-card/70 p-5 shadow-apple-sm transition-all duration-200 open:shadow-apple-md sm:p-6"
-            >
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
-                <div className="min-w-0 space-y-1.5">
-                  <span className="block font-semibold tracking-tight">{protocol.name}</span>
-                  <span className="line-clamp-2 block text-sm leading-6 text-muted-foreground">
-                    {protocol.description || '这个协议暂未填写描述。'}
-                  </span>
-                </div>
-                <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-90" />
-              </summary>
-              <div className="mt-5 max-h-96 overflow-auto rounded-xl bg-secondary/50 p-5 text-sm leading-7 text-secondary-foreground/90">
-                <p className="whitespace-pre-wrap wrap-break-word">{protocol.context || '暂无协议正文。'}</p>
+          {sortedReleases.map((release, index) => (
+            <Collapsible key={release.id} defaultOpen={index === 0}>
+              <div className="rounded-2xl bg-muted/30 overflow-hidden border border-border/10">
+                <CollapsibleTrigger className="w-full text-left p-4 sm:p-5 flex items-center justify-between hover:bg-muted/50 transition-colors group">
+                  <div className="flex-1 min-w-0 pr-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-base sm:text-lg truncate">{release.name}</h3>
+                      <Badge variant="outline" className="text-[10px] font-mono h-5">{release.releaseId}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Calendar className="size-3" />
+                      {formatDate(release.releaseDate)}
+                    </p>
+                  </div>
+                  <ChevronRight className="size-5 text-muted-foreground group-data-[state=open]:rotate-90 transition-transform" />
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent>
+                  <div className="px-4 pb-4 sm:px-5 sm:pb-5 space-y-4">
+                    {release.description && (
+                      <p className="text-sm text-muted-foreground border-t border-border/10 pt-4 leading-relaxed">
+                        {release.description}
+                      </p>
+                    )}
+                    
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {release.softs.map((soft) => (
+                        <div key={soft.id} className="flex items-center justify-between gap-3 bg-background/60 rounded-xl p-3 border border-border/30">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate">{soft.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{soft.channel?.name ?? '通用渠道'}</p>
+                          </div>
+                          <Button size="icon" variant="ghost" className="size-8 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground" asChild>
+                            <a href={resolveApiUrl(soft.softUrl)} target="_blank" rel="noreferrer">
+                              <ArrowDownToLine className="size-4" />
+                            </a>
+                          </Button>
+                        </div>
+                      ))}
+                      {release.softs.length === 0 && (
+                        <p className="text-xs text-muted-foreground italic col-span-full py-2">该版本暂未上传软件包。</p>
+                      )}
+                    </div>
+                  </div>
+                </CollapsibleContent>
               </div>
-            </details>
+            </Collapsible>
           ))}
+          {app.releases.length === 0 && (
+             <SoftEmptyState title="暂无发行版" description="这个应用还没有发布任何发行版。" />
+          )}
         </div>
-      )}
-    </section>
-  )
-}
+      </section>
 
-function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card/70 p-6 shadow-apple-sm transition-all duration-200 hover:shadow-apple-md">
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          {label}
-        </span>
-        <span className="flex size-8 items-center justify-center rounded-xl bg-secondary text-secondary-foreground shadow-apple-sm">
-          {icon}
-        </span>
-      </div>
-      <p className="mt-4 text-3xl font-bold tracking-tight">{value}</p>
+      {/* Protocols Section */}
+      <section className="space-y-4">
+        <h2 className="text-xl sm:text-2xl font-bold">App 协议</h2>
+        <div className="rounded-3xl bg-muted/30 overflow-hidden">
+          <div className="p-5 sm:p-6 space-y-1">
+            <div className="divide-y divide-border/10">
+              {app.protocols.map((protocol) => (
+                <div key={protocol.id} className="py-4 flex items-start gap-3 group">
+                  <div className="size-9 shrink-0 flex items-center justify-center rounded-xl bg-background shadow-xs">
+                    <FileText className="size-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-bold">{protocol.name}</p>
+                      <Link to="#" className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                        查看条款
+                      </Link>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                      {protocol.description || '此协议规定了软件的使用权限、用户的权利与义务以及隐私保护相关事宜。'}
+                    </p>
+                    {protocol.context && (
+                      <div className="mt-2 bg-background/40 rounded-lg p-2.5 border border-border/5">
+                        <p className="text-[10px] text-muted-foreground font-mono leading-tight truncate">
+                          ID: {protocol.id}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {app.protocols.length === 0 && (
+                <div className="flex items-center gap-3 py-4">
+                   <Info className="size-5 text-muted-foreground" />
+                   <p className="text-sm text-muted-foreground italic">开发者尚未提供详细的协议说明。</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
 
 function DetailSkeleton() {
   return (
-    <div className="space-y-10 sm:space-y-12">
-      <div className="h-4 w-24 animate-pulse rounded-lg bg-muted" />
-      <div className="h-52 animate-pulse rounded-2xl border border-border/60 bg-card/60 shadow-apple-sm" />
-      <div className="grid gap-3 sm:grid-cols-3">
-        {Array.from({ length: 3 }, (_, i) => (
-          <div
-            key={i}
-            className="h-28 animate-pulse rounded-2xl border border-border/60 bg-card/60 shadow-apple-sm"
-          />
+    <div className="max-w-4xl mx-auto px-4 py-12 space-y-10 animate-pulse">
+      <div className="flex gap-8 items-start">
+        <div className="size-32 sm:size-40 bg-muted rounded-[22%]" />
+        <div className="flex-1 space-y-4 py-2">
+          <div className="h-10 w-2/3 bg-muted rounded-lg" />
+          <div className="h-5 w-1/3 bg-muted rounded-md" />
+          <div className="h-9 w-28 bg-muted rounded-full" />
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 bg-muted/40 rounded-xl" />
         ))}
+      </div>
+      <div className="h-px bg-muted" />
+      <div className="space-y-3">
+        <div className="h-8 w-1/4 bg-muted rounded" />
+        <div className="h-20 bg-muted/20 rounded-2xl" />
       </div>
     </div>
   )
@@ -332,18 +348,4 @@ function formatDate(value: string) {
     month: '2-digit',
     day: '2-digit',
   }).format(date)
-}
-
-function getUniqueChannels(releases: ReleaseDto[]) {
-  const channels = new Map<string, string>()
-
-  for (const release of releases) {
-    for (const soft of release.softs) {
-      if (soft.channel) {
-        channels.set(soft.channel.id, soft.channel.name)
-      }
-    }
-  }
-
-  return [...channels.values()]
 }

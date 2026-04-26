@@ -295,7 +295,8 @@ export function AdminAppDetailPage() {
       />
   )
 
-  const app = state.data
+  const app = state.status === 'success' ? state.data : null
+  if (!app) return null
 
   return (
     <div className="space-y-6">
@@ -372,7 +373,7 @@ export function AdminAppDetailPage() {
                       <Label htmlFor="soft-release">所属发行版</Label>
                       <Select value={softForm.releaseId} onValueChange={(val) => setSoftForm({ ...softForm, releaseId: val })}>
                         <SelectTrigger id="soft-release"><SelectValue placeholder="选择发行版" /></SelectTrigger>
-                        <SelectContent>{app.releases.map((r) => <SelectItem key={r.id} value={r.id}>{r.name} ({r.releaseId})</SelectItem>)}</SelectContent>
+                        <SelectContent>{app.releases.map((r: ReleaseDto) => <SelectItem key={r.id} value={r.id}>{r.name} ({r.releaseId})</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="grid gap-2">

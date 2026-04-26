@@ -1,17 +1,19 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowLeft, BookText, LoaderCircle, Save, Eye, Edit3 } from 'lucide-react'
+import { ArrowLeft, BookText, LoaderCircle, Save, Eye, Edit3, Info } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/button'
 import { createProtocol } from '@/services'
-import { AdminPageHeader, AdminPanel } from './AdminShared'
+import { AdminPageHeader } from './AdminShared'
 import { getAdminErrorMessage } from './adminUtils'
 import { useAdminAuthFailure } from './useAdminAuthFailure'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 interface NewProtocolForm {
   name: string
@@ -69,118 +71,147 @@ export function AdminAddProtocolPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto space-y-8 py-6">
       <AdminPageHeader
         eyebrow={
-          <>
+          <Badge variant="outline" className="gap-1.5 py-1 px-3">
             <BookText className="size-3.5" />
-            Protocols
-          </>
+            协议管理
+          </Badge>
         }
         title="添加新协议"
-        description="为应用创建法律声明、用户协议或隐私政策。支持 Markdown 格式正文。"
+        description="为您的应用创建法律声明、用户协议或隐私政策。支持标准的 Markdown 格式。"
         action={
-          <Button asChild variant="outline" className="rounded-xl">
+          <Button asChild variant="ghost" className="rounded-xl group">
             <Link to={`/admin/apps/${appId}`}>
-              <ArrowLeft className="size-4" />
+              <ArrowLeft className="size-4 mr-2 transition-transform group-hover:-translate-x-1" />
               取消并返回
             </Link>
           </Button>
         }
       />
 
-      <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[1fr_400px]">
-        <div className="space-y-6">
-          <AdminPanel title="协议内容" icon={<Edit3 className="size-5" />}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="flex items-center justify-between mb-4">
-                <TabsList className="grid w-full max-w-[200px] grid-cols-2">
-                  <TabsTrigger value="edit" className="flex items-center gap-2">
-                    <Edit3 className="size-3.5" />
-                    编辑
-                  </TabsTrigger>
-                  <TabsTrigger value="preview" className="flex items-center gap-2">
-                    <Eye className="size-3.5" />
-                    预览
-                  </TabsTrigger>
-                </TabsList>
-                <span className="text-xs text-muted-foreground">支持标准 Markdown 语法</span>
+      <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-8">
+          <Card className="rounded-[1.5rem] border-border/60 overflow-hidden shadow-sm">
+            <CardHeader className="bg-muted/30 border-b border-border/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">协议内容</CardTitle>
+                  <CardDescription>使用 Markdown 编写协议的正文内容</CardDescription>
+                </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
+                  <TabsList className="grid w-full grid-cols-2 h-9 rounded-lg">
+                    <TabsTrigger value="edit" className="text-xs gap-1.5">
+                      <Edit3 className="size-3" />
+                      编辑
+                    </TabsTrigger>
+                    <TabsTrigger value="preview" className="text-xs gap-1.5">
+                      <Eye className="size-3" />
+                      预览
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
-              
-              <TabsContent value="edit" className="mt-0">
-                <div className="grid gap-2">
-                  <Label htmlFor="context" className="sr-only">正文内容</Label>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsContent value="edit" className="mt-0 border-none ring-0 focus-visible:ring-0">
                   <Textarea
                     id="context"
                     placeholder="在这里输入协议正文，支持 Markdown..."
-                    className="min-h-[500px] font-mono leading-relaxed"
+                    className="min-h-[600px] border-none rounded-none font-mono leading-relaxed p-6 focus-visible:ring-0 resize-none text-base"
                     value={form.context}
                     onChange={(e) => setForm({ ...form, context: e.target.value })}
                   />
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="preview" className="mt-0">
-                <div className="min-h-[500px] rounded-md border bg-background/50 p-6 prose prose-slate dark:prose-invert max-w-none overflow-auto">
-                  {form.context.trim() ? (
-                    <ReactMarkdown>{form.context}</ReactMarkdown>
-                  ) : (
-                    <p className="text-muted-foreground italic text-center py-20">暂无预览内容</p>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </AdminPanel>
+                </TabsContent>
+                
+                <TabsContent value="preview" className="mt-0 p-6">
+                  <div className="min-h-[600px] prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-p:leading-relaxed">
+                    {form.context.trim() ? (
+                      <ReactMarkdown>{form.context}</ReactMarkdown>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full py-40 text-muted-foreground gap-4">
+                        <Info className="size-12 opacity-20" />
+                        <p className="italic">暂无预览内容，请切换到编辑模式开始编写</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="space-y-6">
-          <AdminPanel title="基本信息" icon={<BookText className="size-5" />}>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">协议名称</Label>
+        <div className="space-y-8">
+          <Card className="rounded-[1.5rem] border-border/60 shadow-sm sticky top-6">
+            <CardHeader>
+              <CardTitle className="text-xl">基本信息</CardTitle>
+              <CardDescription>设置协议的展示名称和简短介绍</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-semibold">协议名称</Label>
                 <Input
                   id="name"
                   placeholder="例如：用户服务协议"
+                  className="rounded-xl h-11"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">简短描述</Label>
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-semibold">简短描述</Label>
                 <Textarea
                   id="description"
                   placeholder="简单说明该协议的用途..."
                   rows={4}
+                  className="rounded-xl resize-none"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
               </div>
               
               {formError && (
-                <p className="text-sm font-medium text-destructive">{formError}</p>
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium p-3 rounded-lg">
+                  {formError}
+                </div>
               )}
 
-              <Button type="submit" size="lg" className="w-full mt-2 shadow-apple-md" disabled={submitting}>
+              <Button type="submit" size="lg" className="w-full h-12 rounded-xl shadow-lg shadow-primary/20" disabled={submitting}>
                 {submitting ? (
                   <LoaderCircle className="mr-2 size-4 animate-spin" />
                 ) : (
                   <Save className="mr-2 size-4" />
                 )}
-                {submitting ? '正在保存' : '保存协议'}
+                {submitting ? '正在保存...' : '保存协议'}
               </Button>
-            </div>
-          </AdminPanel>
+            </CardContent>
+          </Card>
           
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-            <h4 className="text-sm font-semibold text-primary flex items-center gap-2 mb-2">
-              Markdown 提示
+          <div className="p-6 rounded-[1.5rem] bg-muted/30 border border-border/50 space-y-4">
+            <h4 className="text-sm font-bold flex items-center gap-2">
+              <Info className="size-4 text-primary" />
+              Markdown 快捷指南
             </h4>
-            <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-4">
-              <li>使用 <code>#</code> 表示标题</li>
-              <li>使用 <code>**文本**</code> 表示加粗</li>
-              <li>使用 <code>* 列表项</code> 表示无序列表</li>
-              <li>使用 <code>[链接文字](url)</code> 添加链接</li>
-            </ul>
+            <div className="grid grid-cols-2 gap-3 text-[10px] text-muted-foreground font-mono">
+              <div className="bg-background/50 p-2 rounded-lg border border-border/30">
+                # 标题 1<br/>
+                ## 标题 2
+              </div>
+              <div className="bg-background/50 p-2 rounded-lg border border-border/30">
+                **加粗文本**<br/>
+                *斜体文本*
+              </div>
+              <div className="bg-background/50 p-2 rounded-lg border border-border/30">
+                - 列表项 1<br/>
+                - 列表项 2
+              </div>
+              <div className="bg-background/50 p-2 rounded-lg border border-border/30">
+                [链接文字](url)<br/>
+                {">"} 引用块
+              </div>
+            </div>
           </div>
         </div>
       </form>

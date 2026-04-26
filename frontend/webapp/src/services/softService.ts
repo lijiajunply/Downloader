@@ -25,7 +25,9 @@ export function uploadSoftPackage(
 ) {
   const formData = new FormData()
   formData.set('name', dto.name)
-  formData.set('description', dto.description)
+  if (dto.description) {
+    formData.set('description', dto.description)
+  }
   formData.set('releaseId', dto.releaseId)
   formData.set('channelId', dto.channelId)
   formData.set('file', dto.file)
