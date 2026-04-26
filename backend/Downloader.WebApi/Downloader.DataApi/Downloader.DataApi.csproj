@@ -12,7 +12,6 @@
 
     <ItemGroup>
       <Folder Include="Configs\" />
-      <Folder Include="Repos\" />
       <Folder Include="Services\" />
     </ItemGroup>
 
