@@ -39,6 +39,17 @@ export function updateApp(id: string, dto: AppUpdateDto, token?: string) {
   })
 }
 
+export function uploadAppIcon(id: string, file: File, token?: string) {
+  const formData = new FormData()
+  formData.set('file', file)
+
+  return apiRequest<AppDto>(`${appPath}/${encodeURIComponent(id)}/icon`, {
+    method: 'POST',
+    body: formData,
+    token,
+  })
+}
+
 export function deleteApp(id: string, token?: string) {
   return apiRequest<void>(`${appPath}/${encodeURIComponent(id)}`, {
     method: 'DELETE',

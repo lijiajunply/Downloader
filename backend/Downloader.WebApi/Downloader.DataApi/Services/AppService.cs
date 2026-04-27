@@ -12,6 +12,7 @@ public interface IAppService
     Task<AppLatestVersionDto?> GetLatestVersionAsync(string appId, string? channelId);
     Task<AppDto?> CreateAsync(AppCreateDto dto);
     Task<bool> UpdateAsync(string id, AppUpdateDto dto);
+    Task<bool> UpdateIconAsync(string id, string iconUrl);
     Task<bool> DeleteAsync(string id);
 }
 
@@ -25,6 +26,7 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
             Id = a.Id,
             Name = a.Name,
             Description = a.Description,
+            IconUrl = a.IconUrl,
             IsActive = a.IsActive
         }).ToList();
     }
@@ -39,6 +41,7 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
             Id = app.Id,
             Name = app.Name,
             Description = app.Description,
+            IconUrl = app.IconUrl,
             IsActive = app.IsActive
         };
     }
@@ -53,6 +56,7 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
             Id = app.Id,
             Name = app.Name,
             Description = app.Description,
+            IconUrl = app.IconUrl,
             IsActive = app.IsActive,
             Releases = app.Releases.OrderByDescending(r => r.ReleaseDate).Select(r => new ReleaseDto
             {
@@ -137,6 +141,7 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
             Id = app.Id,
             Name = app.Name,
             Description = app.Description,
+            IconUrl = app.IconUrl,
             IsActive = app.IsActive
         };
     }
@@ -148,8 +153,18 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
 
         app.Name = dto.Name;
         app.Description = dto.Description;
+        app.IconUrl = dto.IconUrl;
         app.IsActive = dto.IsActive;
 
+        return await appRepo.UpdateAsync(app);
+    }
+
+    public async Task<bool> UpdateIconAsync(string id, string iconUrl)
+    {
+        var app = await appRepo.GetByIdAsync(id);
+        if (app == null) return false;
+
+        app.IconUrl = iconUrl;
         return await appRepo.UpdateAsync(app);
     }
 

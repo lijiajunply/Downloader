@@ -2,6 +2,7 @@ export interface AppDto {
   id: string
   name: string
   description: string
+  iconUrl: string
   isActive: boolean
 }
 
@@ -27,6 +28,7 @@ export interface AppCreateDto {
 export interface AppUpdateDto {
   name: string
   description: string
+  iconUrl: string
   isActive: boolean
 }
 

@@ -8,6 +8,7 @@ import { getErrorMessage } from './pageUtils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { AppIcon } from '@/components/AppIcon'
 
 export function HomePage() {
   const [state, setState] = useState<LoadState<AppDto[]>>({ status: 'loading' })
@@ -133,8 +134,14 @@ function AppGrid({ apps }: { apps: AppDto[] }) {
           className="block group"
         >
           <Card className="h-full rounded-[1.5rem] overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20 hover:-translate-y-1">
+            <CardHeader className="p-6 pb-0 flex-row items-start gap-4 space-y-0">
+              <AppIcon name={app.name} iconUrl={app.iconUrl} className="size-14 shadow-sm" />
+              <div className="min-w-0 space-y-1">
+                <CardTitle className="truncate text-2xl font-bold">{app.name}</CardTitle>
+                <p className="text-xs font-medium text-muted-foreground">应用</p>
+              </div>
+            </CardHeader>
             <CardContent className="p-6 space-y-3">
-              <CardTitle className="text-2xl font-bold">{app.name}</CardTitle>
               <CardDescription className="line-clamp-3 text-base leading-relaxed h-18">
                 {app.description || '探索这个应用的无限可能。'}
               </CardDescription>

@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   CircleAlert,
   FileText,
-  Package,
   SearchX,
   ChevronRight,
   Info,
@@ -25,6 +24,7 @@ import { CourseAppShowcase } from './showcase/CourseAppShowcase'
 import { CampusMarketShowcase } from './showcase/CampusMarketShowcase'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { AppIcon } from '@/components/AppIcon'
 import {
   Collapsible,
   CollapsibleContent,
@@ -129,9 +129,7 @@ function AppDetail({ app }: { app: AppDetailDto }) {
       {/* Header Section */}
       <section className="flex gap-5 sm:gap-8 items-start">
         <div className="shrink-0">
-          <div className="size-24 sm:size-32 lg:size-40 flex items-center justify-center rounded-[22%] bg-linear-to-br from-primary/10 to-primary/5 border border-border/40 shadow-xl overflow-hidden">
-             <Package className="size-1/2 text-primary" strokeWidth={1.5} />
-          </div>
+          <AppIcon name={app.name} iconUrl={app.iconUrl} className="size-24 shadow-xl sm:size-32 lg:size-40" />
         </div>
         
         <div className="flex-1 min-w-0 py-1 flex flex-col h-24 sm:h-32 lg:h-40 justify-between">

@@ -189,6 +189,13 @@ using (var scope = app.Services.CreateScope())
             context.Users.Add(model);
         }
 
+        if (!await context.Channels.AnyAsync())
+        {
+            context.Channels.AddRange([
+                new ChannelModel()
+            ]);
+        }
+
         await context.SaveChangesAsync();
     }
     catch (Exception ex)

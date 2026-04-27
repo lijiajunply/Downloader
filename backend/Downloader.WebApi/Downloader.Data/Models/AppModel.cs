@@ -12,6 +12,7 @@ public class AppModel
     [Key] [MaxLength(64)] public string Id { get; set; } = Guid.NewGuid().ToString();
     [MaxLength(64)] public string Name { get; set; } = "";
     [MaxLength(512)] public string Description { get; set; } = "";
+    [MaxLength(512)] public string IconUrl { get; set; } = "";
 
     public bool IsActive { get; set; } = true;
     public List<ReleaseModel> Releases { get; set; } = [];

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Boxes, LoaderCircle, Plus, RotateCcw, MoreVertical, Pencil, Trash2 } from 'lucide-react'
+import { Boxes, ImagePlus, LoaderCircle, MoreVertical, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/button'
-import { createApp, getApps, getUserList, updateApp, deleteApp } from '@/services'
+import { createApp, getApps, getUserList, updateApp, deleteApp, uploadAppIcon } from '@/services'
 import type { AppDto, UserDto } from '@/types'
 import type { LoadState } from '../pageComponents'
 import { StatusBadge } from '../pageComponents'
@@ -50,16 +50,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch"
+import { AppIcon } from '@/components/AppIcon'
 
 interface NewAppForm {
   name: string
   description: string
   userId: string
+  iconFile: File | null
 }
 
 interface EditAppForm {
   name: string
   description: string
+  iconUrl: string
+  iconFile: File | null
   isActive: boolean
 }
 
@@ -67,6 +71,7 @@ const emptyForm: NewAppForm = {
   name: '',
   description: '',
   userId: '',
+  iconFile: null,
 }
 
 export function AdminAppsPage() {
@@ -84,7 +89,7 @@ export function AdminAppsPage() {
 
   // Edit
   const [editingApp, setEditingApp] = useState<AppDto | null>(null)
-  const [editForm, setEditForm] = useState<EditAppForm>({ name: '', description: '', isActive: true })
+  const [editForm, setEditForm] = useState<EditAppForm>({ name: '', description: '', iconUrl: '', iconFile: null, isActive: true })
   const [editOpen, setEditOpen] = useState(false)
   const [editSubmitting, setEditSubmitting] = useState(false)
   const [editError, setEditError] = useState('')
@@ -145,6 +150,9 @@ export function AdminAppsPage() {
       },
         token,
       )
+      if (form.iconFile) {
+        await uploadAppIcon(createdApp.id, form.iconFile, token)
+      }
       setForm((current) => ({ ...emptyForm, userId: current.userId }))
       setCreateOpen(false)
       navigate(`/admin/apps/${encodeURIComponent(createdApp.id)}`)
@@ -172,8 +180,12 @@ export function AdminAppsPage() {
       await updateApp(editingApp.id, {
         name: editForm.name.trim(),
         description: editForm.description.trim(),
+        iconUrl: editForm.iconUrl,
         isActive: editForm.isActive,
       }, token)
+      if (editForm.iconFile) {
+        await uploadAppIcon(editingApp.id, editForm.iconFile, token)
+      }
       setEditOpen(false)
       setEditingApp(null)
       await loadApps()
@@ -202,6 +214,8 @@ export function AdminAppsPage() {
     setEditForm({
       name: app.name,
       description: app.description,
+      iconUrl: app.iconUrl,
+      iconFile: null,
       isActive: app.isActive,
     })
     setEditError('')
@@ -221,13 +235,19 @@ export function AdminAppsPage() {
               <DialogTrigger asChild>
                 <Button className="rounded-xl shadow-apple-md"><Plus className="size-4" /> 添加应用</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <form onSubmit={handleCreateApp}>
-                  <DialogHeader>
+              <DialogContent className="overflow-hidden p-0 sm:max-w-[520px]">
+                <form onSubmit={handleCreateApp} className="grid min-w-0">
+                  <DialogHeader className="px-6 pt-6">
                     <DialogTitle>创建新应用</DialogTitle>
                     <DialogDescription>填写应用基本信息。应用必须绑定到一个负责用户。</DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
+                  <div className="grid min-w-0 gap-4 px-6 py-4">
+                    <IconPicker
+                      inputId="app-icon"
+                      name={form.name || '新应用'}
+                      file={form.iconFile}
+                      onFileChange={(file) => setForm({ ...form, iconFile: file })}
+                    />
                     <div className="grid gap-2">
                       <Label htmlFor="app-name">应用名称</Label>
                       <Input id="app-name" placeholder="例如 Downloader" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -245,7 +265,7 @@ export function AdminAppsPage() {
                     </div>
                     {createError && <p className="text-sm font-medium text-destructive">{createError}</p>}
                   </div>
-                  <DialogFooter><Button type="submit" disabled={createSubmitting}>{createSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />} 确认创建</Button></DialogFooter>
+                  <DialogFooter className="mx-0 mb-0 rounded-none px-6 py-4"><Button type="submit" disabled={createSubmitting}>{createSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />} 确认创建</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
@@ -258,13 +278,20 @@ export function AdminAppsPage() {
       </ResourceContent>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-106.25">
-          <form onSubmit={handleUpdateApp}>
-            <DialogHeader>
+        <DialogContent className="overflow-hidden p-0 sm:max-w-[520px]">
+          <form onSubmit={handleUpdateApp} className="grid min-w-0">
+            <DialogHeader className="px-6 pt-6">
               <DialogTitle>编辑应用: {editingApp?.name}</DialogTitle>
               <DialogDescription>修改应用的基本信息及启用状态。</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid min-w-0 gap-4 px-6 py-4">
+              <IconPicker
+                inputId="edit-icon"
+                name={editForm.name || editingApp?.name || '应用'}
+                iconUrl={editForm.iconUrl}
+                file={editForm.iconFile}
+                onFileChange={(file) => setEditForm({ ...editForm, iconFile: file })}
+              />
               <div className="grid gap-2">
                 <Label htmlFor="edit-name">应用名称</Label>
                 <Input id="edit-name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
@@ -279,7 +306,7 @@ export function AdminAppsPage() {
               </div>
               {editError && <p className="text-sm font-medium text-destructive">{editError}</p>}
             </div>
-            <DialogFooter><Button type="submit" disabled={editSubmitting}>{editSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />} 保存修改</Button></DialogFooter>
+            <DialogFooter className="mx-0 mb-0 rounded-none px-6 py-4"><Button type="submit" disabled={editSubmitting}>{editSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />} 保存修改</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -302,7 +329,7 @@ export function AdminAppsPage() {
 
 function AppTable({ apps, onEdit, onDelete }: { apps: AppDto[], onEdit: (app: AppDto) => void, onDelete: (id: string) => void }) {
   return (
-    <TableShell minWidth={760}>
+    <TableShell minWidth={820}>
       <thead className="bg-muted/50 text-xs font-medium text-muted-foreground">
         <tr>
           <th className="px-4 py-3 text-left">应用名称</th>
@@ -314,7 +341,12 @@ function AppTable({ apps, onEdit, onDelete }: { apps: AppDto[], onEdit: (app: Ap
       <tbody className="divide-y divide-border/40">
         {apps.map((app) => (
           <tr key={app.id} className="hover:bg-muted/30 transition-colors group">
-            <td className="px-4 py-3 font-medium text-foreground">{app.name}</td>
+            <td className="px-4 py-3 font-medium text-foreground">
+              <div className="flex items-center gap-3">
+                <AppIcon name={app.name} iconUrl={app.iconUrl} className="size-10" />
+                <span className="min-w-0 truncate">{app.name}</span>
+              </div>
+            </td>
             <td className="max-w-sm px-4 py-3 text-muted-foreground"><span className="line-clamp-2">{app.description || '暂无描述'}</span></td>
             <td className="px-4 py-3"><StatusBadge active={app.isActive} /></td>
             <td className="px-4 py-3 text-right">
@@ -333,6 +365,45 @@ function AppTable({ apps, onEdit, onDelete }: { apps: AppDto[], onEdit: (app: Ap
         ))}
       </tbody>
     </TableShell>
+  )
+}
+
+function IconPicker({
+  inputId,
+  name,
+  iconUrl,
+  file,
+  onFileChange,
+}: {
+  inputId: string
+  name: string
+  iconUrl?: string
+  file: File | null
+  onFileChange: (file: File | null) => void
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={inputId}>应用图标</Label>
+      <div className="flex items-center gap-4">
+        <AppIcon name={name} iconUrl={iconUrl} className="size-16" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <label htmlFor={inputId} className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground">
+            <ImagePlus className="size-4" />
+            选择图片
+          </label>
+          <input
+            id={inputId}
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+            className="sr-only"
+            onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+          />
+          <p className="truncate text-xs text-muted-foreground">
+            {file ? file.name : '支持 PNG、JPG、GIF、WEBP、SVG'}
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }
 

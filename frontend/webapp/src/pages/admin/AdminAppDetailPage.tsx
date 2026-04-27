@@ -35,6 +35,7 @@ import {
   AdminPanel,
   TableShell,
 } from './AdminShared'
+import { AppIcon } from '@/components/AppIcon'
 import { formatDate, getAdminErrorMessage, truncateText } from './adminUtils'
 import { useAdminAuthFailure } from './useAdminAuthFailure'
 import {
@@ -312,6 +313,16 @@ export function AdminAppDetailPage() {
         }
       />
 
+      <section className="flex items-center gap-4 rounded-2xl border border-border/60 bg-card/70 p-5 shadow-apple-sm">
+        <AppIcon name={app.name} iconUrl={app.iconUrl} className="size-16" />
+        <div className="min-w-0">
+          <p className="truncate text-lg font-semibold">{app.name}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {app.iconUrl ? '已配置应用图标' : '未配置应用图标'}
+          </p>
+        </div>
+      </section>
+
       <section className="grid gap-4 sm:grid-cols-4">
         <MetricCard label="状态" value={app.isActive ? '启用' : '停用'} />
         <MetricCard label="发行版" value={String(app.releases.length)} />
@@ -573,5 +584,5 @@ function validateSoftForm(form: NewSoftForm) {
 }
 
 function isNotFoundError(error: unknown) {
-  return typeof error === 'object' && error !== null && 'status' in error && (error as any).status === 404
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === 404
 }
