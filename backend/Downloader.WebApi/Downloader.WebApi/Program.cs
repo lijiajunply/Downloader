@@ -192,9 +192,31 @@ using (var scope = app.Services.CreateScope())
 
         if (!await context.Channels.AnyAsync())
         {
-            context.Channels.AddRange([
-                new ChannelModel()
-            ]);
+            context.Channels.AddRange(new ChannelModel()
+            {
+                Name = "Android"
+            }, new ChannelModel()
+            {
+                Name = "Web"
+            }, new ChannelModel()
+            {
+                Name = "iOS"
+            }, new ChannelModel()
+            {
+                Name = "HarmonyOS"
+            }, new ChannelModel()
+            {
+                Name = "Windows"
+            }, new ChannelModel()
+            {
+                Name = "Linux"
+            }, new ChannelModel()
+            {
+                Name = "macOS Arm"
+            }, new ChannelModel()
+            {
+                Name = "macOS x64"
+            });
         }
 
         await context.SaveChangesAsync();
