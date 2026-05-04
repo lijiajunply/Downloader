@@ -27,7 +27,8 @@ if (string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddDbContextFactory<DownloaderContext>(options =>
     {
-        options.UseSqlite("Data Source=downloader.db");
+        options.UseSqlite("Data Source=downloader.db",
+            o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
         options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     });
 
@@ -38,12 +39,12 @@ else
 {
     builder.Services.AddDbContextFactory<DownloaderContext>(options =>
     {
-        options.UseNpgsql(connectionString);
+        options.UseNpgsql(connectionString, o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
         options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
-
-        builder.Services.AddDataProtection()
-            .PersistKeysToPostgres(connectionString, true);
     });
+
+    builder.Services.AddDataProtection()
+        .PersistKeysToPostgres(connectionString, true);
 }
 
 #endregion

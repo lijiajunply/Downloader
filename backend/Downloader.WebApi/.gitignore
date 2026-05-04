@@ -62,3 +62,5 @@ _ReSharper*/
 keys/
 
 /wwwroot/upload/
+
+.env
