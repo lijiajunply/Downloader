@@ -18,12 +18,15 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { 
   createRelease, 
+  deleteSoft,
   getApp, 
   getChannelList, 
   resolveApiUrl, 
   uploadSoftPackage,
+  updateSoft,
   updateRelease,
   deleteRelease,
   deleteProtocol
@@ -88,6 +91,15 @@ interface NewSoftForm {
   file: File | null
 }
 
+interface EditSoftForm {
+  id: string
+  name: string
+  description: string
+  releaseId: string
+  channelId: string
+  softUrl: string
+}
+
 const emptyReleaseForm: NewReleaseForm = {
   name: '',
   description: '',
@@ -102,6 +114,15 @@ const emptySoftForm: NewSoftForm = {
   file: null,
 }
 
+const emptyEditSoftForm: EditSoftForm = {
+  id: '',
+  name: '',
+  description: '',
+  releaseId: '',
+  channelId: '',
+  softUrl: '',
+}
+
 export function AdminAppDetailPage() {
   const { id } = useParams()
   const { token } = useAuth()
@@ -111,19 +132,23 @@ export function AdminAppDetailPage() {
   
   const [releaseForm, setReleaseForm] = useState<NewReleaseForm>(emptyReleaseForm)
   const [softForm, setSoftForm] = useState<NewSoftForm>(emptySoftForm)
+  const [editingSoft, setEditingSoft] = useState<EditSoftForm>(emptyEditSoftForm)
   
   const [releaseError, setReleaseError] = useState('')
   const [softError, setSoftError] = useState('')
+  const [softEditError, setSoftEditError] = useState('')
   
   const [releaseSubmitting, setReleaseSubmitting] = useState(false)
   const [softSubmitting, setSoftSubmitting] = useState(false)
+  const [softEditSubmitting, setSoftEditSubmitting] = useState(false)
   
   const [releaseDialogOpen, setReleaseDialogOpen] = useState(false)
   const [softDialogOpen, setSoftDialogOpen] = useState(false)
+  const [softEditDialogOpen, setSoftEditDialogOpen] = useState(false)
   
   // For Editing/Deleting
   const [editingRelease, setEditingRelease] = useState<ReleaseDto | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'release' | 'protocol', id: string } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'release' | 'protocol' | 'soft', id: string } | null>(null)
 
   const loadAppDetail = useCallback(async () => {
     if (!id) return
@@ -245,12 +270,46 @@ export function AdminAppDetailPage() {
     }
   }
 
+  async function handleUpdateSoft(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!token || !id) return
+
+    const validationMessage = validateSoftEditForm(editingSoft)
+    if (validationMessage) {
+      setSoftEditError(validationMessage)
+      return
+    }
+
+    setSoftEditSubmitting(true)
+    setSoftEditError('')
+
+    try {
+      await updateSoft(editingSoft.id, {
+        name: editingSoft.name.trim(),
+        description: editingSoft.description.trim(),
+        softUrl: editingSoft.softUrl,
+        releaseId: editingSoft.releaseId,
+        channelId: editingSoft.channelId,
+      }, token)
+      setEditingSoft(emptyEditSoftForm)
+      setSoftEditDialogOpen(false)
+      await refreshCurrentApp(id)
+    } catch (error) {
+      if (handleAuthFailure(error)) return
+      setSoftEditError(getAdminErrorMessage(error))
+    } finally {
+      setSoftEditSubmitting(false)
+    }
+  }
+
   async function handleDeleteConfirm() {
     if (!token || !deleteTarget || !id) return
 
     try {
       if (deleteTarget.type === 'release') {
         await deleteRelease(deleteTarget.id, token)
+      } else if (deleteTarget.type === 'soft') {
+        await deleteSoft(deleteTarget.id, token)
       } else {
         await deleteProtocol(deleteTarget.id, token)
       }
@@ -276,6 +335,19 @@ export function AdminAppDetailPage() {
       releaseId: release.releaseId,
     })
     setReleaseDialogOpen(true)
+  }
+
+  const openEditSoft = (releaseId: string, soft: SoftDto) => {
+    setEditingSoft({
+      id: soft.id,
+      name: soft.name,
+      description: soft.description ?? '',
+      releaseId,
+      channelId: soft.channel?.id ?? '',
+      softUrl: soft.softUrl,
+    })
+    setSoftEditError('')
+    setSoftEditDialogOpen(true)
   }
 
   if (state.status === 'loading') return <AppDetailSkeleton />
@@ -370,7 +442,20 @@ export function AdminAppDetailPage() {
               </DialogContent>
             </Dialog>
 
-            <Dialog open={softDialogOpen} onOpenChange={setSoftDialogOpen}>
+            <Dialog
+              open={softDialogOpen}
+              onOpenChange={(open) => {
+                setSoftDialogOpen(open)
+                if (!open) {
+                  setSoftError('')
+                  setSoftForm((current) => ({
+                    ...emptySoftForm,
+                    releaseId: current.releaseId,
+                    channelId: current.channelId,
+                  }))
+                }
+              }}
+            >
               <DialogTrigger asChild><Button size="sm"><Upload className="size-4" /> 上传安装包</Button></DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <form onSubmit={handleUploadSoft}>
@@ -410,10 +495,103 @@ export function AdminAppDetailPage() {
                 </form>
               </DialogContent>
             </Dialog>
+
+            <Dialog
+              open={softEditDialogOpen}
+              onOpenChange={(open) => {
+                setSoftEditDialogOpen(open)
+                if (!open) {
+                  setEditingSoft(emptyEditSoftForm)
+                  setSoftEditError('')
+                }
+              }}
+            >
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleUpdateSoft}>
+                  <DialogHeader>
+                    <DialogTitle>编辑安装包</DialogTitle>
+                    <DialogDescription>调整安装包名称、归属发行版和发布渠道。</DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-soft-name">安装包名称</Label>
+                      <Input
+                        id="edit-soft-name"
+                        value={editingSoft.name}
+                        onChange={(e) => setEditingSoft({ ...editingSoft, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-soft-release">所属发行版</Label>
+                      <Select
+                        value={editingSoft.releaseId}
+                        onValueChange={(value) => setEditingSoft({ ...editingSoft, releaseId: value })}
+                      >
+                        <SelectTrigger id="edit-soft-release"><SelectValue placeholder="选择发行版" /></SelectTrigger>
+                        <SelectContent>
+                          {app.releases.map((release) => (
+                            <SelectItem key={release.id} value={release.id}>
+                              {release.name} ({release.releaseId})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-soft-channel">发布渠道</Label>
+                      <Select
+                        value={editingSoft.channelId}
+                        onValueChange={(value) => setEditingSoft({ ...editingSoft, channelId: value })}
+                      >
+                        <SelectTrigger id="edit-soft-channel"><SelectValue placeholder="选择渠道" /></SelectTrigger>
+                        <SelectContent>
+                          {channels.map((channel) => (
+                            <SelectItem key={channel.id} value={channel.id}>{channel.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-soft-description">安装包描述</Label>
+                      <Textarea
+                        id="edit-soft-description"
+                        placeholder="输入安装包说明..."
+                        value={editingSoft.description}
+                        onChange={(e) => setEditingSoft({ ...editingSoft, description: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>当前文件</Label>
+                      <a
+                        href={resolveApiUrl(editingSoft.softUrl)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm text-primary hover:underline"
+                      >
+                        {editingSoft.softUrl || '未找到文件地址'}
+                      </a>
+                    </div>
+                    {softEditError && <p className="text-sm font-medium text-destructive">{softEditError}</p>}
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={softEditSubmitting}>
+                      {softEditSubmitting && <LoaderCircle className="mr-2 size-4 animate-spin" />}
+                      保存修改
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
         </div>
 
         {app.releases.length > 0 ? (
-          <ReleaseTable releases={app.releases} onEdit={openEditRelease} onDelete={(id) => setDeleteTarget({ type: 'release', id })} />
+          <ReleaseTable
+            releases={app.releases}
+            onEdit={openEditRelease}
+            onDelete={(targetId) => setDeleteTarget({ type: 'release', id: targetId })}
+            onEditSoft={openEditSoft}
+            onDeleteSoft={(targetId) => setDeleteTarget({ type: 'soft', id: targetId })}
+          />
         ) : (
           <StatePanel icon={<GitBranch className="size-5" />} title="暂无发行版" description="为这个应用添加第一个发行版以开始分发软件。" />
         )}
@@ -461,7 +639,19 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ReleaseTable({ releases, onEdit, onDelete }: { releases: ReleaseDto[], onEdit: (r: ReleaseDto) => void, onDelete: (id: string) => void }) {
+function ReleaseTable({
+  releases,
+  onEdit,
+  onDelete,
+  onEditSoft,
+  onDeleteSoft,
+}: {
+  releases: ReleaseDto[]
+  onEdit: (r: ReleaseDto) => void
+  onDelete: (id: string) => void
+  onEditSoft: (releaseId: string, soft: SoftDto) => void
+  onDeleteSoft: (id: string) => void
+}) {
   return (
     <TableShell minWidth={900}>
       <thead className="bg-muted/50 text-xs font-medium text-muted-foreground">
@@ -481,7 +671,14 @@ function ReleaseTable({ releases, onEdit, onDelete }: { releases: ReleaseDto[], 
             <td className="px-4 py-3 text-muted-foreground">{release.releaseId}</td>
             <td className="px-4 py-3 text-muted-foreground">{formatDate(release.releaseDate)}</td>
             <td className="max-w-sm px-4 py-3 text-muted-foreground"><span className="line-clamp-2">{release.description || '暂无描述'}</span></td>
-            <td className="px-4 py-3"><SoftList softs={release.softs} /></td>
+            <td className="px-4 py-3">
+              <SoftList
+                releaseId={release.id}
+                softs={release.softs}
+                onEdit={onEditSoft}
+                onDelete={onDeleteSoft}
+              />
+            </td>
             <td className="px-4 py-3 text-right">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="size-4" /></Button></DropdownMenuTrigger>
@@ -498,19 +695,56 @@ function ReleaseTable({ releases, onEdit, onDelete }: { releases: ReleaseDto[], 
   )
 }
 
-function SoftList({ softs }: { softs: SoftDto[] }) {
+function SoftList({
+  releaseId,
+  softs,
+  onEdit,
+  onDelete,
+}: {
+  releaseId: string
+  softs: SoftDto[]
+  onEdit: (releaseId: string, soft: SoftDto) => void
+  onDelete: (id: string) => void
+}) {
   if (softs.length === 0) return <span className="text-muted-foreground text-xs italic">暂无包</span>
   return (
     <div className="space-y-1.5 py-1">
       {softs.map((soft) => (
         <div key={soft.id} className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-2 py-1.5">
-          <div className="min-w-0">
+          <div className="min-w-0 space-y-1">
             <p className="truncate text-xs font-medium text-foreground">{soft.name}</p>
-            <p className="truncate text-[10px] text-muted-foreground uppercase font-semibold">{soft.channel?.name ?? 'DEFAULT'}</p>
+            <div className="flex flex-wrap items-center gap-1">
+              <Badge variant="outline" className="text-[10px] font-semibold">
+                {soft.channel?.name ?? 'DEFAULT'}
+              </Badge>
+              {soft.description ? (
+                <span className="line-clamp-1 text-[10px] text-muted-foreground">{soft.description}</span>
+              ) : null}
+            </div>
           </div>
-          <Button asChild variant="ghost" size="icon" className="size-7 shrink-0 rounded-md" title="下载">
-            <a href={resolveApiUrl(soft.softUrl)} target="_blank" rel="noreferrer"><Download className="size-3.5" /></a>
-          </Button>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-md"
+              title="编辑安装包"
+              onClick={() => onEdit(releaseId, soft)}
+            >
+              <Pencil className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-md text-destructive hover:text-destructive"
+              title="删除安装包"
+              onClick={() => onDelete(soft.id)}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+            <Button asChild variant="ghost" size="icon" className="size-7 rounded-md" title="下载">
+              <a href={resolveApiUrl(soft.softUrl)} target="_blank" rel="noreferrer"><Download className="size-3.5" /></a>
+            </Button>
+          </div>
         </div>
       ))}
     </div>
@@ -580,6 +814,14 @@ function validateSoftForm(form: NewSoftForm) {
   if (!form.releaseId) return '请选择发行版。'
   if (!form.channelId) return '请选择渠道。'
   if (!form.file) return '请选择文件。'
+  return ''
+}
+
+function validateSoftEditForm(form: EditSoftForm) {
+  if (!form.name.trim()) return '请输入名称。'
+  if (!form.releaseId) return '请选择发行版。'
+  if (!form.channelId) return '请选择渠道。'
+  if (!form.softUrl) return '未找到当前安装包文件。'
   return ''
 }
 

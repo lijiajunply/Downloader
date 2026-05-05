@@ -107,6 +107,8 @@ export interface SoftUpdateDto {
   name: string
   softUrl: string
   description?: string
+  releaseId: string
+  channelId: string
 }
 
 export interface UserDto {

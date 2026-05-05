@@ -23,4 +23,6 @@ public class SoftUpdateDto
     public string Name { get; set; } = "";
     public string SoftUrl { get; set; } = "";
     public string? Description { get; set; }
+    public string ReleaseId { get; set; } = "";
+    public string ChannelId { get; set; } = "";
 }

@@ -79,9 +79,16 @@ public class SoftService(ISoftRepo softRepo, IReleaseRepo releaseRepo, IChannelR
         var soft = await softRepo.GetByIdAsync(id);
         if (soft == null) return false;
 
+        var release = await releaseRepo.GetByIdAsync(dto.ReleaseId);
+        var channel = await channelRepo.GetByIdAsync(dto.ChannelId);
+
+        if (release == null || channel == null) return false;
+
         soft.Name = dto.Name;
         soft.SoftUrl = dto.SoftUrl;
         soft.Description = dto.Description;
+        soft.ReleaseId = release.Id;
+        soft.ChannelId = channel.Id;
 
         return await softRepo.UpdateAsync(soft);
     }
