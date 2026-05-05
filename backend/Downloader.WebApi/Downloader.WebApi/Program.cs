@@ -2,9 +2,9 @@ using System.IO.Compression;
 using System.Text;
 using Downloader.Data;
 using Downloader.Data.Models;
-using Downloader.DataApi.Configs;
 using Downloader.DataApi.Repos;
 using Downloader.DataApi.Services;
+using Downloader.WebApi.Configuration;
 using Downloader.WebApi.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -17,32 +17,17 @@ using NpgsqlDataProtection;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+var appConfiguration = AppRuntimeConfigurationLoader.Load(builder.Environment.ContentRootPath);
+var fileStorageOptions = appConfiguration.Storage;
+var jwtOptions = appConfiguration.Jwt;
 
-var envFilePath = Path.Combine(builder.Environment.ContentRootPath, ".env");
-if (File.Exists(envFilePath))
-{
-    DotNetEnv.Env.Load(envFilePath);
-}
-
-builder.Configuration.Sources.Clear();
-builder.Configuration.AddEnvironmentVariables();
-
-var fileStorageOptions = new FileStorageOptions();
-builder.Configuration.GetSection("Storage").Bind(fileStorageOptions);
-if (string.IsNullOrWhiteSpace(fileStorageOptions.VercelBlob.Token))
-{
-    fileStorageOptions.VercelBlob.Token = builder.Configuration["BLOB_READ_WRITE_TOKEN"] ?? "";
-}
+builder.Services.AddSingleton(appConfiguration);
 builder.Services.AddSingleton(fileStorageOptions);
-
-var jwtOptions = new JwtOptions();
-builder.Configuration.GetSection("JwtSettings").Bind(jwtOptions);
 builder.Services.AddSingleton(jwtOptions);
 
 #region 数据库
 
-var connectionString = builder.Configuration["SQL"] ??
-                       builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = appConfiguration.ConnectionString;
 
 if (string.IsNullOrEmpty(connectionString))
 {
