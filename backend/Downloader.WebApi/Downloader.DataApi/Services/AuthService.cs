@@ -3,8 +3,8 @@ using System.Security.Claims;
 using System.Text;
 using Downloader.Data;
 using Downloader.Data.DTOs;
+using Downloader.DataApi.Configs;
 using Downloader.DataApi.Repos;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Downloader.DataApi.Services;
@@ -14,7 +14,7 @@ public interface IAuthService
     Task<LoginResultDto?> LoginAsync(UserLoginDto dto);
 }
 
-public class AuthService(IUserRepo userRepo, IConfiguration configuration) : IAuthService
+public class AuthService(IUserRepo userRepo, JwtOptions jwtOptions) : IAuthService
 {
     public async Task<LoginResultDto?> LoginAsync(UserLoginDto dto)
     {
@@ -28,8 +28,7 @@ public class AuthService(IUserRepo userRepo, IConfiguration configuration) : IAu
 
         // 生成 JWT Token
         var tokenHandler = new JwtSecurityTokenHandler();
-        var secretKey = configuration["JwtSettings:SecretKey"] ?? "default_secret_key_needs_to_be_at_least_32_characters_long";
-        var key = Encoding.UTF8.GetBytes(secretKey);
+        var key = Encoding.UTF8.GetBytes(jwtOptions.SecretKey);
         
         var claims = new List<Claim>
         {
@@ -42,9 +41,9 @@ public class AuthService(IUserRepo userRepo, IConfiguration configuration) : IAu
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddDays(7), // Token 7天过期
-            Issuer = configuration["JwtSettings:Issuer"],
-            Audience = configuration["JwtSettings:Audience"],
+            Expires = DateTime.UtcNow.AddDays(jwtOptions.ExpireDays),
+            Issuer = jwtOptions.Issuer,
+            Audience = jwtOptions.Audience,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
 

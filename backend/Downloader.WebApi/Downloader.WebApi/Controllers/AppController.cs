@@ -2,12 +2,13 @@ using Downloader.Data.DTOs;
 using Downloader.DataApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Downloader.WebApi.Storage;
 
 namespace Downloader.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AppController(IAppService appService, IWebHostEnvironment environment) : ControllerBase
+public class AppController(IAppService appService, IFileStorage fileStorage) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<AppDto>>> GetAll()
@@ -66,24 +67,15 @@ public class AppController(IAppService appService, IWebHostEnvironment environme
             return BadRequest("Only PNG, JPG, JPEG, GIF, WEBP, and SVG images are supported.");
         }
 
-        var storedFileName = BuildStoredFileName(request.File.FileName);
-        var uploadRoot = Path.Combine(GetWebRootPath(), "uploads", "app-icons");
-        Directory.CreateDirectory(uploadRoot);
-
-        var filePath = Path.Combine(uploadRoot, storedFileName);
-        await using (var stream = System.IO.File.Create(filePath))
-        {
-            await request.File.CopyToAsync(stream);
-        }
-
-        var success = await appService.UpdateIconAsync(id, BuildPublicIconUrl(storedFileName));
+        var storedFile = await fileStorage.UploadAsync("app-icons", request.File, "app-icon", HttpContext.RequestAborted);
+        var success = await appService.UpdateIconAsync(id, storedFile.PublicUrl);
         if (success)
         {
             var app = await appService.GetByIdAsync(id);
             return app == null ? NotFound() : Ok(app);
         }
 
-        System.IO.File.Delete(filePath);
+        await fileStorage.DeleteAsync(storedFile.StorageKey, HttpContext.RequestAborted);
         return NotFound();
     }
 
@@ -94,42 +86,6 @@ public class AppController(IAppService appService, IWebHostEnvironment environme
         var success = await appService.DeleteAsync(id);
         if (!success) return NotFound();
         return NoContent();
-    }
-
-    private string GetWebRootPath()
-    {
-        if (!string.IsNullOrWhiteSpace(environment.WebRootPath))
-        {
-            return environment.WebRootPath;
-        }
-
-        return Path.Combine(environment.ContentRootPath, "wwwroot");
-    }
-
-    private static string BuildStoredFileName(string fileName)
-    {
-        var originalFileName = Path.GetFileName(fileName);
-        var name = Path.GetFileNameWithoutExtension(originalFileName);
-        var extension = Path.GetExtension(originalFileName);
-        var safeName = string.Join("_", name.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
-
-        if (string.IsNullOrWhiteSpace(safeName))
-        {
-            safeName = "app-icon";
-        }
-
-        if (safeName.Length > 80)
-        {
-            safeName = safeName[..80];
-        }
-
-        return $"{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}-{safeName}{extension}";
-    }
-
-    private string BuildPublicIconUrl(string storedFileName)
-    {
-        var encodedFileName = Uri.EscapeDataString(storedFileName);
-        return $"{Request.Scheme}://{Request.Host}/uploads/app-icons/{encodedFileName}";
     }
 
     private static bool IsSupportedImage(IFormFile file)

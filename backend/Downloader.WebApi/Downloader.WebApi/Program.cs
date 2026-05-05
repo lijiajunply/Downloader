@@ -2,8 +2,10 @@ using System.IO.Compression;
 using System.Text;
 using Downloader.Data;
 using Downloader.Data.Models;
+using Downloader.DataApi.Configs;
 using Downloader.DataApi.Repos;
 using Downloader.DataApi.Services;
+using Downloader.WebApi.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.Features;
@@ -16,11 +18,30 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-DotNetEnv.Env.Load();
+var envFilePath = Path.Combine(builder.Environment.ContentRootPath, ".env");
+if (File.Exists(envFilePath))
+{
+    DotNetEnv.Env.Load(envFilePath);
+}
+
+builder.Configuration.Sources.Clear();
+builder.Configuration.AddEnvironmentVariables();
+
+var fileStorageOptions = new FileStorageOptions();
+builder.Configuration.GetSection("Storage").Bind(fileStorageOptions);
+if (string.IsNullOrWhiteSpace(fileStorageOptions.VercelBlob.Token))
+{
+    fileStorageOptions.VercelBlob.Token = builder.Configuration["BLOB_READ_WRITE_TOKEN"] ?? "";
+}
+builder.Services.AddSingleton(fileStorageOptions);
+
+var jwtOptions = new JwtOptions();
+builder.Configuration.GetSection("JwtSettings").Bind(jwtOptions);
+builder.Services.AddSingleton(jwtOptions);
 
 #region 数据库
 
-var connectionString = Environment.GetEnvironmentVariable("SQL", EnvironmentVariableTarget.Process) ??
+var connectionString = builder.Configuration["SQL"] ??
                        builder.Configuration.GetConnectionString("DefaultConnection");
 
 if (string.IsNullOrEmpty(connectionString))
@@ -84,13 +105,29 @@ builder.Services.AddScoped<IProtocolService, ProtocolService>();
 builder.Services.AddScoped<IReleaseService, ReleaseService>();
 builder.Services.AddScoped<ISoftService, SoftService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<LocalFileStorage>();
+builder.Services.AddScoped<S3FileStorage>();
+builder.Services.AddHttpClient<VercelBlobFileStorage>();
+builder.Services.AddScoped<IFileStorage>(serviceProvider =>
+{
+    var options = serviceProvider.GetRequiredService<FileStorageOptions>();
+    if (string.Equals(options.Provider, "S3", StringComparison.OrdinalIgnoreCase))
+    {
+        return serviceProvider.GetRequiredService<S3FileStorage>();
+    }
+
+    if (string.Equals(options.Provider, "VercelBlob", StringComparison.OrdinalIgnoreCase))
+    {
+        return serviceProvider.GetRequiredService<VercelBlobFileStorage>();
+    }
+
+    return serviceProvider.GetRequiredService<LocalFileStorage>();
+});
 
 #endregion
 
 #region 身份认证
-
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"] ?? "default_secret_key_needs_to_be_at_least_32_characters_long";
 
 builder.Services.AddAuthentication(options =>
     {
@@ -105,9 +142,9 @@ builder.Services.AddAuthentication(options =>
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey))
         };
     });
 

@@ -2,12 +2,13 @@ using Downloader.Data.DTOs;
 using Downloader.DataApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Downloader.WebApi.Storage;
 
 namespace Downloader.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SoftController(ISoftService softService, IWebHostEnvironment environment) : ControllerBase
+public class SoftController(ISoftService softService, IFileStorage fileStorage) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<SoftDto>>> GetAll()
@@ -44,15 +45,7 @@ public class SoftController(ISoftService softService, IWebHostEnvironment enviro
             return BadRequest("Please upload a software package file.");
         }
 
-        var storedFileName = BuildStoredFileName(request.File.FileName);
-        var uploadRoot = Path.Combine(GetWebRootPath(), "uploads", "software");
-        Directory.CreateDirectory(uploadRoot);
-
-        var filePath = Path.Combine(uploadRoot, storedFileName);
-        await using (var stream = System.IO.File.Create(filePath))
-        {
-            await request.File.CopyToAsync(stream);
-        }
+        var storedFile = await fileStorage.UploadAsync("software", request.File, "package", HttpContext.RequestAborted);
 
         var soft = await softService.CreateAsync(new SoftCreateDto
         {
@@ -60,12 +53,12 @@ public class SoftController(ISoftService softService, IWebHostEnvironment enviro
             Description = request.Description,
             ReleaseId = request.ReleaseId,
             ChannelId = request.ChannelId,
-            SoftUrl = BuildPublicFileUrl(storedFileName)
+            SoftUrl = storedFile.PublicUrl
         });
 
         if (soft != null) return CreatedAtAction(nameof(GetById), new { id = soft.Id }, soft);
 
-        System.IO.File.Delete(filePath);
+        await fileStorage.DeleteAsync(storedFile.StorageKey, HttpContext.RequestAborted);
         return BadRequest("Could not create soft. Invalid ReleaseId or ChannelId?");
     }
 
@@ -87,41 +80,6 @@ public class SoftController(ISoftService softService, IWebHostEnvironment enviro
         return NoContent();
     }
 
-    private string GetWebRootPath()
-    {
-        if (!string.IsNullOrWhiteSpace(environment.WebRootPath))
-        {
-            return environment.WebRootPath;
-        }
-
-        return Path.Combine(environment.ContentRootPath, "wwwroot");
-    }
-
-    private static string BuildStoredFileName(string fileName)
-    {
-        var originalFileName = Path.GetFileName(fileName);
-        var name = Path.GetFileNameWithoutExtension(originalFileName);
-        var extension = Path.GetExtension(originalFileName);
-        var safeName = string.Join("_", name.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
-
-        if (string.IsNullOrWhiteSpace(safeName))
-        {
-            safeName = "package";
-        }
-
-        if (safeName.Length > 80)
-        {
-            safeName = safeName[..80];
-        }
-
-        return $"{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}-{safeName}{extension}";
-    }
-
-    private string BuildPublicFileUrl(string storedFileName)
-    {
-        var encodedFileName = Uri.EscapeDataString(storedFileName);
-        return $"{Request.Scheme}://{Request.Host}/uploads/software/{encodedFileName}";
-    }
 }
 
 public class SoftUploadRequest
