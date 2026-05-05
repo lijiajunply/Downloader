@@ -25,6 +25,7 @@ public sealed class VercelBlobStorageOptions
     public string Token { get; set; } = "";
     public string ApiUrl { get; set; } = "https://vercel.com/api/blob";
     public string Access { get; set; } = "public";
+    public int TimeoutMinutes { get; set; } = 30;
     public bool AddRandomSuffix { get; set; }
     public bool AllowOverwrite { get; set; }
     public int? CacheControlMaxAge { get; set; }

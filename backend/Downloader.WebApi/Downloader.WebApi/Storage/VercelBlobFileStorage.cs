@@ -1,11 +1,13 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace Downloader.WebApi.Storage;
 
-public sealed class VercelBlobFileStorage(HttpClient httpClient, FileStorageOptions options) : IFileStorage
+public sealed class VercelBlobFileStorage(HttpClient httpClient, FileStorageOptions options, ILogger<VercelBlobFileStorage> logger) : IFileStorage
 {
+    private const string BlobApiVersion = "12";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -21,7 +23,7 @@ public sealed class VercelBlobFileStorage(HttpClient httpClient, FileStorageOpti
         var storedFileName = StoragePathHelper.BuildStoredFileName(file.FileName, fallbackName);
         var pathname = StoragePathHelper.BuildRelativePath(category, storedFileName);
         var requestUri = BuildUploadUri(pathname);
-
+        
         await using var fileStream = file.OpenReadStream();
         using var content = new StreamContent(fileStream);
         content.Headers.ContentLength = file.Length;
@@ -38,19 +40,38 @@ public sealed class VercelBlobFileStorage(HttpClient httpClient, FileStorageOpti
 
         ApplyBlobHeaders(request, file);
 
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        HttpResponseMessage response;
+        try
         {
-            throw await CreateExceptionAsync("upload", response, cancellationToken);
+            response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            var timeoutDescription = _blobOptions.TimeoutMinutes > 0
+                ? $"{_blobOptions.TimeoutMinutes} minute(s)"
+                : "an infinite timeout";
+
+            throw new InvalidOperationException(
+                $"Vercel Blob upload timed out after {timeoutDescription}. File size: {file.Length} bytes. " +
+                "Consider increasing Storage:VercelBlob:TimeoutMinutes or switching to multipart upload for large files.",
+                exception);
         }
 
-        var blob = await response.Content.ReadFromJsonAsync<VercelBlobPutResponse>(JsonOptions, cancellationToken);
-        if (blob == null || string.IsNullOrWhiteSpace(blob.Url) || string.IsNullOrWhiteSpace(blob.Pathname))
+        using (response)
         {
-            throw new InvalidOperationException("Vercel Blob upload succeeded but returned an invalid payload.");
-        }
+            if (!response.IsSuccessStatusCode)
+            {
+                throw await CreateExceptionAsync("upload", response, cancellationToken);
+            }
 
-        return new StoredFileResult(blob.Pathname, blob.Url);
+            var blob = await response.Content.ReadFromJsonAsync<VercelBlobPutResponse>(JsonOptions, cancellationToken);
+            if (blob == null || string.IsNullOrWhiteSpace(blob.Url) || string.IsNullOrWhiteSpace(blob.Pathname))
+            {
+                throw new InvalidOperationException("Vercel Blob upload succeeded but returned an invalid payload.");
+            }
+
+            return new StoredFileResult(blob.Pathname, blob.Url);
+        }
     }
 
     public async Task DeleteAsync(string storageKey, CancellationToken cancellationToken = default)
@@ -76,6 +97,7 @@ public sealed class VercelBlobFileStorage(HttpClient httpClient, FileStorageOpti
     private void ApplyBlobHeaders(HttpRequestMessage request, IFormFile file)
     {
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _blobOptions.Token);
+        request.Headers.Add("x-api-version", BlobApiVersion);
         request.Headers.Add("x-vercel-blob-access", _blobOptions.Access);
         request.Headers.Add("x-add-random-suffix", _blobOptions.AddRandomSuffix ? "1" : "0");
         request.Headers.Add("x-allow-overwrite", _blobOptions.AllowOverwrite ? "1" : "0");

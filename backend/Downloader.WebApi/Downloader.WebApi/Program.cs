@@ -108,7 +108,13 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<LocalFileStorage>();
 builder.Services.AddScoped<S3FileStorage>();
-builder.Services.AddHttpClient<VercelBlobFileStorage>();
+builder.Services.AddHttpClient<VercelBlobFileStorage>((serviceProvider, client) =>
+{
+    var options = serviceProvider.GetRequiredService<FileStorageOptions>().VercelBlob;
+    client.Timeout = options.TimeoutMinutes > 0
+        ? TimeSpan.FromMinutes(options.TimeoutMinutes)
+        : Timeout.InfiniteTimeSpan;
+});
 builder.Services.AddScoped<IFileStorage>(serviceProvider =>
 {
     var options = serviceProvider.GetRequiredService<FileStorageOptions>();
