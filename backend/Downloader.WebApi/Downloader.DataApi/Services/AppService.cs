@@ -105,6 +105,7 @@ public class AppService(IAppRepo appRepo, IUserRepo userRepo) : IAppService
             AppName = release.AppModel.Name,
             ReleaseId = release.ReleaseId,
             ReleaseDate = release.ReleaseDate,
+            Context = release.Description,
             Softs = softs.Select(s => new SoftDto
             {
                 Id = s.Id,

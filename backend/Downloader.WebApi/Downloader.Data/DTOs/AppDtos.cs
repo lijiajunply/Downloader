@@ -21,6 +21,7 @@ public class AppLatestVersionDto
     public string AppName { get; set; } = "";
     public string ReleaseId { get; set; } = "";
     public DateTime ReleaseDate { get; set; }
+    public string Context { get; set; } = "";
     public List<SoftDto> Softs { get; set; } = [];
 }
 
