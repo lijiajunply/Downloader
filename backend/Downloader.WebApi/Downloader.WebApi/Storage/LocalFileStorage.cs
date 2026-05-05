@@ -20,13 +20,35 @@ public sealed class LocalFileStorage(
 
         Directory.CreateDirectory(directory);
 
-        await using (var stream = System.IO.File.Create(physicalPath))
+        await using (var stream = File.Create(physicalPath))
         {
             await file.CopyToAsync(stream, cancellationToken);
         }
 
         var publicUrl = StoragePathHelper.BuildPublicUrl(GetPublicBaseUrl(), relativePath);
         return new StoredFileResult(relativePath, publicUrl);
+    }
+
+    public Task<StoredFileDownloadResult> DownloadAsync(string storageKey, CancellationToken cancellationToken = default)
+    {
+        var normalizedKey = StoragePathHelper.NormalizeStorageKey(storageKey);
+        var physicalPath = Path.GetFullPath(Path.Combine(GetWebRootPath(), normalizedKey.Replace('/', Path.DirectorySeparatorChar)));
+        var webRootPath = Path.GetFullPath(GetWebRootPath());
+
+        if (!physicalPath.StartsWith(webRootPath, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("The storage key points outside of the configured web root.");
+        }
+
+        if (!File.Exists(physicalPath))
+        {
+            throw new FileNotFoundException("The requested file does not exist.", physicalPath);
+        }
+
+        var stream = File.OpenRead(physicalPath);
+        var contentType = StoragePathHelper.GetContentType(physicalPath);
+        var fileName = Path.GetFileName(physicalPath);
+        return Task.FromResult(new StoredFileDownloadResult(stream, contentType, fileName));
     }
 
     public Task DeleteAsync(string storageKey, CancellationToken cancellationToken = default)

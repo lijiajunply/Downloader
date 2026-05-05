@@ -103,7 +103,8 @@ builder.Services.AddHttpClient<VercelBlobFileStorage>((serviceProvider, client) 
 builder.Services.AddScoped<IFileStorage>(serviceProvider =>
 {
     var options = serviceProvider.GetRequiredService<FileStorageOptions>();
-    if (string.Equals(options.Provider, "S3", StringComparison.OrdinalIgnoreCase))
+    if (string.Equals(options.Provider, "S3", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(options.Provider, "R2", StringComparison.OrdinalIgnoreCase))
     {
         return serviceProvider.GetRequiredService<S3FileStorage>();
     }

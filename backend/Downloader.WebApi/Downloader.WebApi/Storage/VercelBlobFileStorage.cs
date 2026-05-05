@@ -94,6 +94,11 @@ public sealed class VercelBlobFileStorage(HttpClient httpClient, FileStorageOpti
         }
     }
 
+    public Task<StoredFileDownloadResult> DownloadAsync(string storageKey, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("Vercel Blob download proxy is not implemented.");
+    }
+
     private void ApplyBlobHeaders(HttpRequestMessage request, IFormFile file)
     {
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _blobOptions.Token);
